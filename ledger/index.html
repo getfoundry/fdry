@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>fdry ledger</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0b0d10;
+    --panel: #13161b;
+    --panel-2: #1a1e25;
+    --border: #262b33;
+    --text: #e6e8eb;
+    --muted: #8a93a0;
+    --accent: #14f195;
+    --accent-2: #9945ff;
+    --warn: #ffb347;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .wrap {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 32px 20px 80px;
+  }
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 28px;
+  }
+  header h1 {
+    margin: 0;
+    font-size: 20px;
+    letter-spacing: 0.01em;
+  }
+  header .sub {
+    color: var(--muted);
+    font-size: 13px;
+    font-family: var(--mono);
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  @media (max-width: 780px) {
+    .grid { grid-template-columns: 1fr; }
+  }
+  .card {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .card h2 {
+    margin: 0 0 12px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--muted);
+  }
+  .nav-big {
+    font-size: 44px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    font-family: var(--mono);
+    line-height: 1.1;
+  }
+  .nav-sub {
+    margin-top: 6px;
+    color: var(--muted);
+    font-family: var(--mono);
+    font-size: 14px;
+  }
+  .nav-delta {
+    margin-top: 10px;
+    font-size: 13px;
+    font-family: var(--mono);
+  }
+  .up { color: var(--accent); }
+  .down { color: #ff6b6b; }
+  .chart-wrap {
+    position: relative;
+    height: 220px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: var(--mono);
+    font-size: 13px;
+  }
+  th, td {
+    padding: 8px 10px;
+    text-align: left;
+    border-bottom: 1px solid var(--border);
+  }
+  th {
+    color: var(--muted);
+    font-weight: 500;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  td.num, th.num { text-align: right; }
+  .pill {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+  }
+  .full { grid-column: 1 / -1; }
+  .tx-row { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); font-family: var(--mono); font-size: 13px; }
+  .tx-row:last-child { border-bottom: none; }
+  .tx-row .kind { min-width: 80px; }
+  .tx-row .amt { margin-left: auto; }
+  .tx-row .sig { color: var(--muted); font-size: 12px; }
+  .loading { color: var(--muted); font-family: var(--mono); font-size: 13px; }
+  .err { color: #ff6b6b; font-family: var(--mono); font-size: 13px; padding: 12px; background: #2a1518; border: 1px solid #4a1f26; border-radius: 8px; margin-bottom: 16px; }
+  footer { margin-top: 32px; color: var(--muted); font-size: 12px; text-align: center; }
+  footer code { font-family: var(--mono); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>fdry · ledger</h1>
+    <div class="sub" id="asof">loading…</div>
+  </header>
+
+  <div id="err-box"></div>
+
+  <div class="grid">
+    <section class="card">
+      <h2>Net Asset Value</h2>
+      <div class="nav-big" id="nav-sol">— SOL</div>
+      <div class="nav-sub" id="nav-usd">— USD</div>
+      <div class="nav-delta" id="nav-delta">&nbsp;</div>
+    </section>
+
+    <section class="card">
+      <h2>NAV (last 30 points)</h2>
+      <div class="chart-wrap"><canvas id="navChart"></canvas></div>
+    </section>
+
+    <section class="card full">
+      <h2>Holdings</h2>
+      <div id="holdings-box"><div class="loading">loading holdings…</div></div>
+    </section>
+
+    <section class="card full">
+      <h2>Recent Transactions</h2>
+      <div id="tx-box"><div class="loading">loading transactions…</div></div>
+    </section>
+  </div>
+
+  <footer>
+    Static ledger. JSON: <a href="./latest.json"><code>latest.json</code></a> · <a href="./history.json"><code>history.json</code></a>
+  </footer>
+</div>
+
+<script>
+(function () {
+  const SOLSCAN = (sig) => `https://solscan.io/tx/${sig}`;
+  const SOLSCAN_ACC = (addr) => `https://solscan.io/account/${addr}`;
+
+  const $ = (id) => document.getElementById(id);
+  const err = (msg) => {
+    const box = $('err-box');
+    const div = document.createElement('div');
+    div.className = 'err';
+    div.textContent = msg;
+    box.appendChild(div);
+  };
+
+  const fmtSol = (n) => {
+    if (n == null || isNaN(n)) return '—';
+    return Number(n).toLocaleString(undefined, { maximumFractionDigits: 4 }) + ' SOL';
+  };
+  const fmtUsd = (n) => {
+    if (n == null || isNaN(n)) return '—';
+    return '$' + Number(n).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+  const fmtNum = (n, d = 4) => {
+    if (n == null || isNaN(n)) return '—';
+    return Number(n).toLocaleString(undefined, { maximumFractionDigits: d });
+  };
+  const shortSig = (s) => (s && s.length > 12) ? s.slice(0, 6) + '…' + s.slice(-6) : (s || '');
+  const shortAddr = (s) => (s && s.length > 12) ? s.slice(0, 4) + '…' + s.slice(-4) : (s || '');
+  const fmtTime = (ts) => {
+    if (!ts) return '';
+    const d = (typeof ts === 'number') ? new Date(ts * (ts < 1e12 ? 1000 : 1)) : new Date(ts);
+    if (isNaN(d)) return String(ts);
+    return d.toISOString().replace('T', ' ').slice(0, 16) + ' UTC';
+  };
+
+  async function loadJSON(path) {
+    const r = await fetch(path, { cache: 'no-store' });
+    if (!r.ok) throw new Error(`${path} → ${r.status}`);
+    return r.json();
+  }
+
+  function renderNAV(latest) {
+    const navSol = latest.nav_sol ?? latest.navSol ?? latest.nav ?? null;
+    const navUsd = latest.nav_usd ?? latest.navUsd ?? null;
+    const asOf = latest.as_of ?? latest.timestamp ?? latest.updated_at ?? null;
+    const prev = latest.prev_nav_sol ?? latest.previous_nav_sol ?? null;
+
+    $('nav-sol').textContent = fmtSol(navSol);
+    $('nav-usd').textContent = fmtUsd(navUsd);
+    $('asof').textContent = asOf ? `as of ${fmtTime(asOf)}` : '';
+
+    if (prev != null && navSol != null) {
+      const delta = navSol - prev;
+      const pct = prev !== 0 ? (delta / prev) * 100 : 0;
+      const cls = delta >= 0 ? 'up' : 'down';
+      const sign = delta >= 0 ? '+' : '';
+      $('nav-delta').innerHTML = `<span class="${cls}">${sign}${fmtNum(delta, 4)} SOL (${sign}${pct.toFixed(2)}%)</span> vs prev`;
+    }
+  }
+
+  function renderHoldings(latest) {
+    const holdings = latest.holdings || latest.positions || [];
+    const box = $('holdings-box');
+    if (!holdings.length) {
+      box.innerHTML = '<div class="loading">no holdings</div>';
+      return;
+    }
+    const rows = holdings.map((h) => {
+      const sym = h.symbol || h.token || h.mint_symbol || '—';
+      const mint = h.mint || h.address || '';
+      const amt = h.amount ?? h.qty ?? h.balance ?? null;
+      const valSol = h.value_sol ?? h.valueSol ?? null;
+      const valUsd = h.value_usd ?? h.valueUsd ?? null;
+      const mintLink = mint
+        ? `<a href="${SOLSCAN_ACC(mint)}" target="_blank" rel="noopener">${shortAddr(mint)}</a>`
+        : '';
+      return `<tr>
+        <td><strong>${sym}</strong> <span class="pill">${mintLink || 'native'}</span></td>
+        <td class="num">${fmtNum(amt, 6)}</td>
+        <td class="num">${fmtSol(valSol)}</td>
+        <td class="num">${fmtUsd(valUsd)}</td>
+      </tr>`;
+    }).join('');
+    box.innerHTML = `<table>
+      <thead><tr><th>Asset</th><th class="num">Amount</th><th class="num">SOL</th><th class="num">USD</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+  }
+
+  function renderTx(latest) {
+    const txs = latest.recent_tx || latest.transactions || latest.txs || [];
+    const box = $('tx-box');
+    if (!txs.length) {
+      box.innerHTML = '<div class="loading">no transactions yet</div>';
+      return;
+    }
+    const items = txs.slice(0, 20).map((t) => {
+      const sig = t.signature || t.sig || t.txid || '';
+      const kind = t.kind || t.type || t.action || 'tx';
+      const amt = t.amount_sol ?? t.amount ?? null;
+      const token = t.token || t.symbol || '';
+      const ts = t.timestamp || t.ts || t.block_time || null;
+      const amtStr = amt != null ? `${fmtNum(amt, 4)} ${token || 'SOL'}` : (token || '');
+      const sigHtml = sig
+        ? `<a class="sig" href="${SOLSCAN(sig)}" target="_blank" rel="noopener">${shortSig(sig)}</a>`
+        : '';
+      return `<div class="tx-row">
+        <span class="pill kind">${kind}</span>
+        <span>${fmtTime(ts)}</span>
+        ${sigHtml}
+        <span class="amt">${amtStr}</span>
+      </div>`;
+    }).join('');
+    box.innerHTML = items;
+  }
+
+  function renderChart(history) {
+    const points = Array.isArray(history) ? history : (history.points || history.nav_history || []);
+    if (!points.length) return;
+    const last = points.slice(-30);
+    const labels = last.map((p) => {
+      const ts = p.timestamp ?? p.ts ?? p.as_of ?? null;
+      if (!ts) return '';
+      const d = (typeof ts === 'number') ? new Date(ts * (ts < 1e12 ? 1000 : 1)) : new Date(ts);
+      return isNaN(d) ? '' : d.toISOString().slice(5, 10);
+    });
+    const data = last.map((p) => p.nav_sol ?? p.navSol ?? p.nav ?? p.value ?? null);
+
+    const ctx = document.getElementById('navChart').getContext('2d');
+    new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          label: 'NAV (SOL)',
+          data,
+          borderColor: '#14f195',
+          backgroundColor: 'rgba(20, 241, 149, 0.12)',
+          fill: true,
+          tension: 0.25,
+          pointRadius: 2,
+          pointHoverRadius: 4,
+          borderWidth: 2,
+        }],
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false },
+          tooltip: { mode: 'index', intersect: false },
+        },
+        scales: {
+          x: {
+            ticks: { color: '#8a93a0', font: { family: 'ui-monospace, Menlo, monospace', size: 10 } },
+            grid: { color: 'rgba(255,255,255,0.04)' },
+          },
+          y: {
+            ticks: { color: '#8a93a0', font: { family: 'ui-monospace, Menlo, monospace', size: 10 } },
+            grid: { color: 'rgba(255,255,255,0.04)' },
+          },
+        },
+      },
+    });
+  }
+
+  async function main() {
+    try {
+      const latest = await loadJSON('./latest.json');
+      renderNAV(latest);
+      renderHoldings(latest);
+      renderTx(latest);
+    } catch (e) {
+      err(`latest.json failed: ${e.message}`);
+    }
+    try {
+      const history = await loadJSON('./history.json');
+      renderChart(history);
+    } catch (e) {
+      err(`history.json failed: ${e.message}`);
+    }
+  }
+
+  main();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,22 @@
+{
+  "name": "routers",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "unbrowse": "tsx unbrowse.ts",
+    "unbrowse:dry-run": "tsx unbrowse.ts --dry-run",
+    "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@solana/web3.js": "^1.95.0",
+    "@symmetry-hq/sdk": "^1.0.0",
+    "bs58": "^6.0.0",
+    "tsx": "^4.19.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.0",
+    "typescript": "^5.5.0"
+  }
+}

@@ -1,0 +1,40 @@
+# dependencies
+node_modules/
+/node_modules
+.pnpm-store/
+
+# env
+.env
+.env.local
+.env.*.local
+
+# keys and secrets
+*.key
+*.keypair.json
+*.pem
+id_rsa
+id_ed25519
+
+# build outputs
+dist/
+/dist
+build/
+out/
+*.tsbuildinfo
+
+# logs
+logs/
+/logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# runtime
+.DS_Store
+/.DS_Store
+.cache/
+.vite/
+coverage/
+
+# misc
+runs/

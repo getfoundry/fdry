@@ -1,0 +1,28 @@
+{
+  "name": "scripts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "snapshot": "tsx src/snapshot.ts",
+    "create-vault": "tsx src/create-vault.ts",
+    "seed": "tsx src/seed.ts",
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@coral-xyz/anchor": "^0.30.1",
+    "@solana/spl-token": "^0.4.14",
+    "@solana/web3.js": "^1.95.0",
+    "@symmetry-hq/sdk": "^1.0.0",
+    "bs58": "^6.0.0",
+    "tsx": "^4.19.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.0",
+    "typescript": "^5.5.0",
+    "vitest": "^2.1.0"
+  }
+}

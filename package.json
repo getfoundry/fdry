@@ -1,0 +1,26 @@
+{
+  "name": "fdry",
+  "version": "0.1.0",
+  "private": true,
+  "description": "fdry monorepo - bot, frontend, scripts, ledger, shared",
+  "type": "module",
+  "packageManager": "pnpm@9.0.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "pnpm -r run build",
+    "test": "pnpm -r run test",
+    "dev:bot": "pnpm --filter bot run dev",
+    "dev:frontend": "pnpm --filter frontend run dev",
+    "snapshot": "pnpm --filter scripts run snapshot",
+    "create-vault": "pnpm --filter scripts run create-vault",
+    "seed": "pnpm --filter scripts run seed"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0",
+    "tsx": "^4.19.0",
+    "vitest": "^2.1.0",
+    "@types/node": "^22.7.0"
+  }
+}

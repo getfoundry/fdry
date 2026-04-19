@@ -1,0 +1,40 @@
+# ============================================================================
+# Railway deployment config — fdry
+# ----------------------------------------------------------------------------
+# Secrets are injected via Railway's environment variables UI.
+# NEVER hardcode CREATOR_KEY, HOT_WALLET_KEY, RPC API keys, or Telegram tokens
+# in this file. See .env.example for the full variable list.
+# ============================================================================
+
+[build]
+builder = "NIXPACKS"
+buildCommand = "pnpm install && pnpm build"
+
+# ----------------------------------------------------------------------------
+# Cron jobs
+# ----------------------------------------------------------------------------
+# Each service runs on its own schedule. Times are UTC.
+# Set all env vars (SOLANA_RPC_URL, CREATOR_KEY, HOT_WALLET_KEY, VAULT_PUBKEY,
+# SYMMETRY_PROGRAM_ID, TELEGRAM_*, HEALTHCHECK_UUID, SIGNAL_FILE_PATH,
+# LEDGER_DIR) in the Railway dashboard, not here.
+# ----------------------------------------------------------------------------
+
+# Daily rebalance: reads the signal and rebalances the vault at 00:00 UTC.
+[[services]]
+name = "bot-daily-rebalance"
+cron = "0 0 * * *"
+startCommand = "tsx bot/src/main.ts"
+
+# Daily snapshot: records vault state to the ledger at 00:10 UTC
+# (10 minutes after the rebalance so it captures the post-rebalance state).
+[[services]]
+name = "ledger-snapshot"
+cron = "10 0 * * *"
+startCommand = "tsx ledger/snapshot.ts"
+
+# ----------------------------------------------------------------------------
+# Deploy defaults
+# ----------------------------------------------------------------------------
+[deploy]
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3

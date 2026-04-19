@@ -1,0 +1,62 @@
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body {
+  background: #FFFFFF;
+  color: #0B0B0C;
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* { box-sizing: border-box; }
+
+.font-display { font-family: 'Sora', 'Inter', system-ui, sans-serif; letter-spacing: -0.02em; }
+
+.molten-text {
+  background: linear-gradient(135deg, #FF6F00 0%, #FF8A00 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.molten-ring {
+  background: linear-gradient(135deg, #FF6F00 0%, #FF8A00 100%);
+  padding: 4px;
+  border-radius: 3rem;
+}
+
+.spark {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: #FF6F00;
+  border-radius: 9999px;
+  opacity: 0;
+  animation: spark-rise 2.4s ease-out infinite;
+}
+
+@keyframes spark-rise {
+  0% { transform: translateY(0); opacity: 0; }
+  20% { opacity: 0.9; }
+  100% { transform: translateY(-80px); opacity: 0; }
+}
+
+.live-dot {
+  position: relative;
+  width: 8px; height: 8px;
+  border-radius: 9999px;
+  background: #FF6F00;
+}
+.live-dot::before {
+  content: "";
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  background: #FF6F00;
+  opacity: 0.5;
+  animation: ping 1.8s cubic-bezier(0,0,0.2,1) infinite;
+}
+@keyframes ping { 75%,100% { transform: scale(2.4); opacity: 0; } }

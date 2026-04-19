@@ -1,0 +1,82 @@
+{
+  "agent": "L3-3b",
+  "domain": "code",
+  "dimension": "land_produced",
+  "primitive": "code",
+  "status": "ok",
+  "timestamp_utc": "2026-04-20",
+  "hypothesis": {
+    "pool_type": "DAMM_v2",
+    "pool_type_confidence": "high",
+    "pool_type_source": "dexscreener labels=[DYN2] => Meteora Dynamic AMM v2 (DAMM v2 / constant-product with dynamic fee)",
+    "is_concentrated": false,
+    "is_constant_product": true
+  },
+  "identity": {
+    "chain": "solana",
+    "dex": "meteora",
+    "pool_program": "damm_v2",
+    "pool_address": "2jC1LpGY1ZjL9UerTFDmTNM4kc2AhHydK4tqqqgbJdhh",
+    "base_token": {
+      "symbol": "FDRY",
+      "name": "Foundry",
+      "mint": "2ZiSPGncrkwWa6GBZB4EDtsfq7HEWwkwsPFzEXieXjNL"
+    },
+    "quote_token": {
+      "symbol": "SOL",
+      "name": "Wrapped SOL",
+      "mint": "So11111111111111111111111111111111111111112"
+    },
+    "pair_created_at_ms": 1748861347000,
+    "dexscreener_url": "https://dexscreener.com/solana/2jc1lpgy1zjl9uertfdmtnm4kc2ahhydk4tqqqgbjdhh"
+  },
+  "metrics": {
+    "price_native_sol": 0.000003469,
+    "price_usd": 0.0002974,
+    "liquidity_usd": 79862.15,
+    "liquidity_base_fdry": 134487375,
+    "liquidity_quote_sol": 464.7965,
+    "volume_usd_24h": 655.75,
+    "volume_usd_6h": 198.26,
+    "volume_usd_1h": 0,
+    "txns_24h": {"buys": 3, "sells": 6},
+    "txns_6h": {"buys": 1, "sells": 1},
+    "price_change_24h_pct": -2.34,
+    "price_change_6h_pct": 0.22,
+    "fdv_usd": 297462,
+    "market_cap_usd": 297462
+  },
+  "pool_params": {
+    "fee_tier_bps": null,
+    "fee_tier_note": "Not exposed by DexScreener. DAMM v2 supports dynamic fees; read directly from pool account or app.meteora.ag to get fee_numerator/fee_denominator.",
+    "bin_step": null,
+    "bin_step_note": "Not applicable — DAMM v2 is constant-product, bin_step is a DLMM concept.",
+    "number_of_positions": null,
+    "number_of_positions_note": "DAMM v2 liquidity is fungible LP (no per-user bin positions like DLMM). N/A at pool level."
+  },
+  "sources": {
+    "dexscreener": {
+      "url": "https://api.dexscreener.com/latest/dex/tokens/2ZiSPGncrkwWa6GBZB4EDtsfq7HEWwkwsPFzEXieXjNL",
+      "status": "ok",
+      "label_seen": "DYN2"
+    },
+    "meteora_dlmm": {
+      "url": "https://dlmm-api.meteora.ag/pair/2jC1LpGY1ZjL9UerTFDmTNM4kc2AhHydK4tqqqgbJdhh",
+      "status": "404_not_found",
+      "interpretation": "Pool is NOT a DLMM pair (consistent with DYN2/DAMM-v2 hypothesis)."
+    },
+    "meteora_amm_v2": {
+      "url_tried": [
+        "https://amm-v2.meteora.ag/pools/2jC1LpGY1ZjL9UerTFDmTNM4kc2AhHydK4tqqqgbJdhh",
+        "https://amm-v2.meteora.ag/pool/2jC1LpGY1ZjL9UerTFDmTNM4kc2AhHydK4tqqqgbJdhh",
+        "https://amm-v2.meteora.ag/pools/search?q=...",
+        "https://dammv2-api.meteora.ag/pools/...",
+        "https://dammv2-api.meteora.ag/pool/...",
+        "https://dammv2-api.meteora.ag/pairs?address=..."
+      ],
+      "status": "no_direct_endpoint_responded_with_pool_detail",
+      "note": "amm-v2.meteora.ag/pools?page=0 returned 200 with empty body (filter by address not supported via querystring). Fee tier should be pulled from on-chain pool account."
+    }
+  },
+  "repair_hint": "Fee tier + exact config not available from public HTTP endpoints reached. To fill fee_tier_bps: (a) open https://app.meteora.ag/pools/2jC1LpGY1ZjL9UerTFDmTNM4kc2AhHydK4tqqqgbJdhh and read Fee %, or (b) deserialize the DAMM v2 pool account on-chain using @meteora-ag/cp-amm-sdk (getPool -> poolFees.baseFee.cliffFeeNumerator / FEE_DENOMINATOR)."
+}

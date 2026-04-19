@@ -1,0 +1,564 @@
+{
+  "SOL": {
+    "mint": "So11111111111111111111111111111111111111112",
+    "decimals": 9,
+    "legs": {
+      "$100": {
+        "USDC_to_TOKEN": {
+          "priceImpactPct": 0.000175947901648132,
+          "hops": 1,
+          "inAmount": "100000000",
+          "outAmount": "1173260211",
+          "dexes": [
+            "BisonFi"
+          ]
+        },
+        "TOKEN_to_USDC": {
+          "priceImpactPct": 0.0,
+          "hops": 1,
+          "inAmount": "1173260211",
+          "outAmount": "100000330",
+          "dexes": [
+            "HumidiFi"
+          ]
+        }
+      },
+      "$1000": {
+        "USDC_to_TOKEN": {
+          "priceImpactPct": 0.00020273841357522438,
+          "hops": 2,
+          "inAmount": "1000000000",
+          "outAmount": "11732634262",
+          "dexes": [
+            "SolFi V2",
+            "BisonFi"
+          ]
+        },
+        "TOKEN_to_USDC": {
+          "priceImpactPct": 0.0,
+          "hops": 1,
+          "inAmount": "11732634262",
+          "outAmount": "999999499",
+          "dexes": [
+            "HumidiFi"
+          ]
+        }
+      },
+      "$10000": {
+        "USDC_to_TOKEN": {
+          "priceImpactPct": 0.000305163097476212,
+          "hops": 3,
+          "inAmount": "10000000000",
+          "outAmount": "117314655968",
+          "dexes": [
+            "BisonFi",
+            "HumidiFi",
+            "SolFi V2"
+          ]
+        },
+        "TOKEN_to_USDC": {
+          "priceImpactPct": 0.0,
+          "hops": 2,
+          "inAmount": "117314655968",
+          "outAmount": "9997952101",
+          "dexes": [
+            "TesseraV",
+            "BisonFi"
+          ]
+        }
+      }
+    }
+  },
+  "WIF": {
+    "mint": "EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm",
+    "decimals": 6,
+    "legs": {
+      "$100": {
+        "USDC_to_TOKEN": {
+          "priceImpactPct": 0.0008828639605938753,
+          "hops": 2,
+          "inAmount": "100000000",
+          "outAmount": "500373398",
+          "dexes": [
+            "SolFi V2",
+            "Whirlpool"
+          ]
+        },
+        "TOKEN_to_USDC": {
+          "priceImpactPct": 0.0012997456104424953,
+          "hops": 2,
+          "inAmount": "501754174",
+          "outAmount": "100065329",
+          "dexes": [
+            "Whirlpool",
+            "HumidiFi"
+          ]
+        }
+      },
+      "$1000": {
+        "USDC_to_TOKEN": {
+          "priceImpactPct": 0.0024912586751016054,
+          "hops": 3,
+          "inAmount": "1000000000",
+          "outAmount": "4995203676",
+          "dexes": [
+            "HumidiFi",
+            "Whirlpool",
+            "ZeroFi"
+          ]
+        },
+        "TOKEN_to_USDC": {
+          "priceImpactPct": 0.0019927843988302484,
+          "hops": 5,
+          "inAmount": "5017541745",
+          "outAmount": "999972795",
+          "dexes": [
+            "Raydium",
+            "Whirlpool",
+            "HumidiFi",
+            "Scorch",
+            "ZeroFi"
+          ]
+        }
+      },
+      "$10000": {
+        "USDC_to_TOKEN": {
+          "priceImpactPct": 0.003845115767321845,
+          "hops": 5,
+          "inAmount": "10000000000",
+          "outAmount": "49884790815",
+          "dexes": [
+            "ZeroFi",
+            "SolFi V2",
+            "HumidiFi",
+            "Whirlpool",
+            "Raydium"
+          ]
+        },
+        "TOKEN_to_USDC": {
+          "priceImpactPct": 0.00524075547317188,
+          "hops": 3,
+          "inAmount": "50175417456",
+          "outAmount": "9965419913",
+          "dexes": [
+            "Whirlpool",
+            "Raydium",
+            "BisonFi"
+          ]
+        }
+      }
+    }
+  },
+  "BONK": {
+    "mint": "DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263",
+    "decimals": 5,
+    "legs": {
+      "$100": {
+        "USDC_to_TOKEN": {
+          "priceImpactPct": 5.1958627393194356e-05,
+          "hops": 1,
+          "inAmount": "100000000",
+          "outAmount": "1654191406919",
+          "dexes": [
+            "ZeroFi"
+          ]
+        },
+        "TOKEN_to_USDC": {
+          "priceImpactPct": 0.0005351239951119224,
+          "hops": 2,
+          "inAmount": "1657353420341",
+          "outAmount": "100131109",
+          "dexes": [
+            "Meteora DLMM",
+            "HumidiFi"
+          ]
+        }
+      },
+      "$1000": {
+        "USDC_to_TOKEN": {
+          "priceImpactPct": 0.0010123584315833967,
+          "hops": 1,
+          "inAmount": "1000000000",
+          "outAmount": "16526228555986",
+          "dexes": [
+            "ZeroFi"
+          ]
+        },
+        "TOKEN_to_USDC": {
+          "priceImpactPct": 0.0005879336248802925,
+          "hops": 5,
+          "inAmount": "16573534203413",
+          "outAmount": "1001316683",
+          "dexes": [
+            "Meteora DLMM",
+            "TesseraV",
+            "Scorch",
+            "ZeroFi",
+            "HumidiFi"
+          ]
+        }
+      },
+      "$10000": {
+        "USDC_to_TOKEN": {
+          "priceImpactPct": 0.002480522524457483,
+          "hops": 4,
+          "inAmount": "10000000000",
+          "outAmount": "165009777196324",
+          "dexes": [
+            "ZeroFi",
+            "Raydium CLMM",
+            "HumidiFi",
+            "Meteora DLMM"
+          ]
+        },
+        "TOKEN_to_USDC": {
+          "priceImpactPct": 0.0023682954691424184,
+          "hops": 5,
+          "inAmount": "165735342034130",
+          "outAmount": "9997624778",
+          "dexes": [
+            "ZeroFi",
+            "Whirlpool",
+            "Meteora DLMM",
+            "ZeroFi",
+            "ZeroFi"
+          ]
+        }
+      }
+    }
+  },
+  "POPCAT": {
+    "mint": "7GCihgDB8fe6KNjn2MYtkzZcRjQy3t9GHdC8uHYmW2hr",
+    "decimals": 9,
+    "legs": {
+      "$100": {
+        "USDC_to_TOKEN": {
+          "priceImpactPct": 2.9790699192220243e-05,
+          "hops": 2,
+          "inAmount": "100000000",
+          "outAmount": "1660558952124",
+          "dexes": [
+            "HumidiFi",
+            "Raydium"
+          ]
+        },
+        "TOKEN_to_USDC": {
+          "priceImpactPct": 0.004852302206718422,
+          "hops": 2,
+          "inAmount": "1660277095599",
+          "outAmount": "99476781",
+          "dexes": [
+            "Raydium",
+            "ZeroFi"
+          ]
+        }
+      },
+      "$1000": {
+        "USDC_to_TOKEN": {
+          "priceImpactPct": 0.0008787928782453365,
+          "hops": 4,
+          "inAmount": "1000000000",
+          "outAmount": "16594515351258",
+          "dexes": [
+            "BisonFi",
+            "Raydium",
+            "HumidiFi",
+            "Raydium"
+          ]
+        },
+        "TOKEN_to_USDC": {
+          "priceImpactPct": 0.0055147667384945545,
+          "hops": 2,
+          "inAmount": "16602770955996",
+          "outAmount": "994286812",
+          "dexes": [
+            "Raydium",
+            "ZeroFi"
+          ]
+        }
+      },
+      "$10000": {
+        "USDC_to_TOKEN": {
+          "priceImpactPct": 0.004935127082453486,
+          "hops": 4,
+          "inAmount": "10000000000",
+          "outAmount": "165241310920924",
+          "dexes": [
+            "Raydium",
+            "BisonFi",
+            "HumidiFi",
+            "Raydium"
+          ]
+        },
+        "TOKEN_to_USDC": {
+          "priceImpactPct": 0.00963063914388713,
+          "hops": 6,
+          "inAmount": "166027709559967",
+          "outAmount": "9901717608",
+          "dexes": [
+            "Whirlpool",
+            "Whirlpool",
+            "Raydium",
+            "Raydium",
+            "ZeroFi",
+            "BisonFi"
+          ]
+        }
+      }
+    }
+  },
+  "DOGE": {
+    "mint": "Gzsz28orh7mRUmcoBYRS4NBCN1HUUz9ixZdn24B6KjG2",
+    "decimals": 6,
+    "legs": {
+      "$100": {
+        "USDC_to_TOKEN": {
+          "priceImpactPct": 2.090484950052221e-05,
+          "hops": 1,
+          "inAmount": "100000000",
+          "outAmount": "1036340735",
+          "dexes": [
+            "Raydium CLMM"
+          ]
+        },
+        "TOKEN_to_USDC": {
+          "priceImpactPct": 0.00022549191769747972,
+          "hops": 1,
+          "inAmount": "1034041287",
+          "outAmount": "99753534",
+          "dexes": [
+            "Raydium CLMM"
+          ]
+        }
+      },
+      "$1000": {
+        "USDC_to_TOKEN": {
+          "priceImpactPct": 0.00022993086202278276,
+          "hops": 1,
+          "inAmount": "1000000000",
+          "outAmount": "10361241083",
+          "dexes": [
+            "Raydium CLMM"
+          ]
+        },
+        "TOKEN_to_USDC": {
+          "priceImpactPct": 0.0004339828692755089,
+          "hops": 1,
+          "inAmount": "10340412870",
+          "outAmount": "997327316",
+          "dexes": [
+            "Raydium CLMM"
+          ]
+        }
+      },
+      "$10000": {
+        "USDC_to_TOKEN": {
+          "priceImpactPct": 0.002315400693811354,
+          "hops": 1,
+          "inAmount": "10000000000",
+          "outAmount": "103396280578",
+          "dexes": [
+            "Raydium CLMM"
+          ]
+        },
+        "TOKEN_to_USDC": {
+          "error": "NO_ROUTES_FOUND",
+          "note": "DOGE (Wormhole) sell ceiling ~$5k; $5k sell impact=0.136%, $7.5k+ no routes",
+          "sell_ceiling_usd": 5000,
+          "at_5k_impact_pct": 0.0013595735090146826
+        }
+      }
+    }
+  },
+  "FLOKI": {
+    "mint": "8GQ6SqfoBvv8JYGB4to116GGytKKj7nF4WxL27h4JEL9",
+    "decimals": 6,
+    "legs": {
+      "$100": {
+        "USDC_to_TOKEN": {
+          "priceImpactPct": 0.03291365187422253,
+          "hops": 2,
+          "inAmount": "100000000",
+          "outAmount": "21354152043527",
+          "dexes": [
+            "HumidiFi",
+            "Pump.fun Amm"
+          ]
+        },
+        "TOKEN_to_USDC": {
+          "priceImpactPct": 0.06498461759761154,
+          "hops": 2,
+          "inAmount": "22728650833512",
+          "outAmount": "96241787",
+          "dexes": [
+            "Pump.fun Amm",
+            "GoonFi V2"
+          ]
+        }
+      },
+      "$1000": {
+        "USDC_to_TOKEN": {
+          "priceImpactPct": 0.2731881548668739,
+          "hops": 4,
+          "inAmount": "1000000000",
+          "outAmount": "160491016272837",
+          "dexes": [
+            "Aquifer",
+            "BisonFi",
+            "HumidiFi",
+            "Pump.fun Amm"
+          ]
+        },
+        "TOKEN_to_USDC": {
+          "priceImpactPct": 0.30152778603825947,
+          "hops": 4,
+          "inAmount": "227286508335126",
+          "outAmount": "718942333",
+          "dexes": [
+            "Pump.fun Amm",
+            "Scorch",
+            "ZeroFi",
+            "HumidiFi"
+          ]
+        }
+      },
+      "$10000": {
+        "USDC_to_TOKEN": {
+          "priceImpactPct": 0.7913941083743006,
+          "hops": 4,
+          "inAmount": "10000000000",
+          "outAmount": "460633272001677",
+          "dexes": [
+            "Aquifer",
+            "BisonFi",
+            "HumidiFi",
+            "Pump.fun Amm"
+          ]
+        },
+        "TOKEN_to_USDC": {
+          "priceImpactPct": 0.8021293217366222,
+          "hops": 3,
+          "inAmount": "2272865083351265",
+          "outAmount": "2036792802",
+          "dexes": [
+            "Pump.fun Amm",
+            "ZeroFi",
+            "HumidiFi"
+          ]
+        }
+      }
+    }
+  },
+  "JTO": {
+    "mint": "jtojtomepa8beP8AuQc6eXt5FriJwfFMwQx2v2f9mCL",
+    "decimals": 9,
+    "legs": {
+      "$100": {
+        "USDC_to_TOKEN": {
+          "priceImpactPct": 0.00031030488500638276,
+          "hops": 3,
+          "inAmount": "100000000",
+          "outAmount": "317990448242",
+          "dexes": [
+            "HumidiFi",
+            "AlphaQ",
+            "Whirlpool"
+          ]
+        },
+        "TOKEN_to_USDC": {
+          "priceImpactPct": 0.005905724150428343,
+          "hops": 3,
+          "inAmount": "318687223475",
+          "outAmount": "99596337",
+          "dexes": [
+            "Whirlpool",
+            "Manifest",
+            "ZeroFi"
+          ]
+        }
+      },
+      "$1000": {
+        "USDC_to_TOKEN": {
+          "priceImpactPct": 0.001135037591045757,
+          "hops": 4,
+          "inAmount": "1000000000",
+          "outAmount": "3177281097142",
+          "dexes": [
+            "Meteora DLMM",
+            "BisonFi",
+            "AlphaQ",
+            "Whirlpool"
+          ]
+        },
+        "TOKEN_to_USDC": {
+          "priceImpactPct": 0.006825474839756758,
+          "hops": 5,
+          "inAmount": "3186872234759",
+          "outAmount": "995041890",
+          "dexes": [
+            "Whirlpool",
+            "Manifest",
+            "Whirlpool",
+            "HumidiFi",
+            "GoonFi V2"
+          ]
+        }
+      },
+      "$10000": {
+        "USDC_to_TOKEN": {
+          "priceImpactPct": 0.009826317936612207,
+          "hops": 6,
+          "inAmount": "10000000000",
+          "outAmount": "31496350771181",
+          "dexes": [
+            "BisonFi",
+            "WhaleStreet",
+            "Manifest",
+            "AlphaQ",
+            "Whirlpool",
+            "Raydium CLMM"
+          ]
+        },
+        "TOKEN_to_USDC": {
+          "priceImpactPct": 0.015243411052431155,
+          "hops": 6,
+          "inAmount": "31868722347597",
+          "outAmount": "9866081264",
+          "dexes": [
+            "Whirlpool",
+            "Raydium CLMM",
+            "Whirlpool",
+            "Manifest",
+            "HumidiFi",
+            "BisonFi"
+          ]
+        }
+      }
+    }
+  },
+  "_hypothesis_summary": {
+    "H1_100usd_under_2pct": {
+      "verdict": "PASS",
+      "max_impact_pct": 0.0649846,
+      "detail": "All 7 tokens route USDC<->TOKEN at $100; max impact=FLOKI sell 0.065%, rest <0.01%."
+    },
+    "H2_1k_under_3pct": {
+      "verdict": "PASS",
+      "max_impact_pct": 0.3015277,
+      "detail": "All route at $1k; max impact=FLOKI sell 0.30%, all others <0.01%."
+    },
+    "H3_10k_under_5pct": {
+      "verdict": "FAIL (2 of 7)",
+      "failures": [
+        "DOGE (Wormhole) sell: NO_ROUTES at $10k, ceiling ~$5k",
+        "FLOKI sell: 0.80% impact routes but thin liquidity via Pump.fun AMM"
+      ],
+      "detail": "5/7 tokens (SOL, WIF, BONK, POPCAT, JTO) route <1% impact at $10k both directions. DOGE sell fails above ~$5k. FLOKI routes but leans on Pump.fun AMM with ~0.8% impact (still <5% threshold, so FLOKI technically passes H3); DOGE is the only hard failure."
+    },
+    "notes": [
+      "DOGE Solana mint Gzsz28... is Wormhole-bridged and thinly traded on Solana DEXs; consider replacing with a native Solana DOGE proxy or removing from trading universe.",
+      "FLOKI Jupiter usdPrice (4.4e-6) is the Solana-bridged 8GQ6... token and does not match mainnet FLOKI (~$0.05); the bridged version has minimal liquidity and routes via Pump.fun AMM. Consider removing or using native Solana variant if one exists.",
+      "SOL, WIF, BONK, POPCAT, JTO all have deep routes with <1% impact at $10k in both directions \u2014 suitable for baseline trades."
+    ]
+  }
+}

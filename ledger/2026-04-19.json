@@ -1,0 +1,17 @@
+{
+  "date": "2026-04-19",
+  "ts": "2026-04-19T21:22:26.366Z",
+  "nav_sol": 0,
+  "nav_usd": 0,
+  "shares_outstanding": 0,
+  "nav_per_share_sol": 0,
+  "depositors": 0,
+  "holdings": [],
+  "fees_collected_sol": 0,
+  "unbrowse_revenue_inflow_sol": 0,
+  "tx_log_recent": [],
+  "symmetry_vault_pubkey": "11111111111111111111111111111111",
+  "explorer_links": [
+    "https://solscan.io/account/11111111111111111111111111111111"
+  ]
+}

@@ -1,0 +1,7 @@
+packages:
+  - 'bot'
+  - 'frontend'
+  - 'scripts'
+  - 'ledger'
+  - 'shared'
+  - 'routers'

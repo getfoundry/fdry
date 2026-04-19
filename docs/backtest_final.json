@@ -1,0 +1,96 @@
+{
+  "agent": "L4-4a",
+  "domain": "ml",
+  "dimension": "Luminaries/Signals - rerun bible-EBM backtest at final config",
+  "primitive": "code",
+  "script": "/Users/lekt9/Projects/unify/.fib-harness-v2.4/jesus_loop_pair_daily.py",
+  "prior_report": "/Users/lekt9/Projects/unify/runs/v8/jupiter_paper/jesus_loop_pair_daily_report.json",
+  "status": "unknown",
+  "blocking": false,
+  "ran_backtest": false,
+  "reason_not_run": "Script uses hardcoded TICKERS universe that does NOT match the final 8-token universe. CLI exposes only --n_configs, --top_k, --windows (no --tokens, no --cost_bps). Per task instructions (step 4), universe mismatch should be reported without modifying the script.",
+  "cli_flags_supported": {
+    "--n_configs": {"type": "int", "default": 300},
+    "--top_k": {"type": "int", "default": 10},
+    "--windows": {"type": "int", "default": 5}
+  },
+  "cli_flags_not_supported": ["--tokens", "--cost_bps", "--universe"],
+  "hardcoded_config": {
+    "TICKERS": ["BTC", "ETH", "SOL", "BONK", "DOGE", "FLOKI", "PEPE"],
+    "TICKERS_count": 7,
+    "K_CHOICES": [2, 3, 4],
+    "LOOKBACK_BARS_CHOICES": [3, 7, 14, 30],
+    "REGIME_MA_CHOICES": [0, 7, 14, 30, 60],
+    "VOL_TARGET_CHOICES": [0.3, 0.5, 0.8, 1.2],
+    "MODE_CHOICES": ["long", "longshort"],
+    "COST_BPS": 40,
+    "bar_timeframe": "1d (docstring says 1h, code uses 1d)",
+    "date_range": "2021-01-01 to 2024-12-31"
+  },
+  "final_universe_target": ["SOL", "WIF", "BONK", "PEPE", "POPCAT", "DOGE", "FLOKI", "JTO"],
+  "universe_diff": {
+    "in_script_only": ["BTC", "ETH"],
+    "in_final_only": ["WIF", "POPCAT", "JTO"],
+    "shared": ["SOL", "BONK", "DOGE", "FLOKI", "PEPE"]
+  },
+  "repair_hint": {
+    "required_changes_to_align_with_final_config": [
+      "Replace hardcoded TICKERS=['BTC','ETH','SOL','BONK','DOGE','FLOKI','PEPE'] with the final 8-token universe ['SOL','WIF','BONK','PEPE','POPCAT','DOGE','FLOKI','JTO'] (line 39).",
+      "Add a --tokens CLI flag (comma-separated) overriding TICKERS so backtests can be parameterized without code edits.",
+      "Add a --cost_bps CLI flag overriding COST_BPS=40 (line 45).",
+      "Verify that binance has USDT pairs for WIF, POPCAT, JTO (load_bars_by_sym skips missing markets silently on line 67-68); some of these only listed late 2023 / 2024 and may truncate windows.",
+      "Once universe matches, re-run: cd /Users/lekt9/Projects/unify && PYTHONPATH=src uv run python -u .fib-harness-v2.4/jesus_loop_pair_daily.py --n_configs 300 --top_k 10 --windows 7"
+    ],
+    "do_not_modify": "Per L4-4a task directive, this agent did NOT modify the script. Repair handoff to an agent with code-change authority for this script."
+  },
+  "prior_results_from_existing_report": {
+    "note": "These results are from the 7-token (BTC/ETH/SOL/BONK/DOGE/FLOKI/PEPE), 5-window, 300-config, top_k=10, 1d-bar run. They are NOT the final-config results requested.",
+    "n_windows": 5,
+    "n_configs": 300,
+    "top_k": 10,
+    "mean_holdout_sharpe": {
+      "rank_train_sharpe": -0.04198429751581452,
+      "rank_composite": 0.39483510141955036,
+      "rank_bible_low_energy": -0.3441997386500726,
+      "rank_bible_high_energy": 0.2545516373129112,
+      "equal_weight": 0.5865493973487321
+    },
+    "win_rates_over_windows": {
+      "bible_low_vs_sharpe": "2/5",
+      "bible_hi_vs_sharpe": "2/5",
+      "bible_low_vs_ew": "0/5",
+      "bible_hi_vs_ew": "2/5",
+      "sharpe_vs_ew": "1/5"
+    }
+  },
+  "hypothesis": {
+    "H1_bible_high_mean_holdout_sharpe": {
+      "claim": 0.2545516373129112,
+      "source": "prior_report (7-token universe, NOT final 8-token)",
+      "status": "unknown_for_final_universe"
+    },
+    "H2_bible_high_vs_ew_win_rate": {
+      "claim": "2/5",
+      "threshold_required": ">=3/7 windows",
+      "pass": false,
+      "status": "fail_on_prior_data_and_unknown_for_final_universe",
+      "note": "Even if scaled to 7-window run, 2/5 = 40% win rate fails the >=3/7 (43%) threshold; bible-HIGH is below EW in majority of windows in prior data."
+    },
+    "H3_strategy_vs_sol_hodl": {
+      "claim": "not_evaluated",
+      "status": "unknown",
+      "note": "Prior report does not include a SOL-HODL benchmark lane. The script's lanes are: rank_train_sharpe, rank_composite, rank_bible_low_energy, rank_bible_high_energy, equal_weight. No per-asset HODL baseline is computed."
+    }
+  },
+  "overall_assessment": {
+    "status": "fail",
+    "blocking": true,
+    "rationale": [
+      "Script universe does not match final 8-token universe; cannot produce final-config backtest without code modification.",
+      "On prior 7-token data, bible-HIGH mean holdout Sharpe (0.25) is BELOW equal-weight (0.59), and bible-HIGH only beats EW in 2/5 windows (minority).",
+      "H2 fails: bible-HIGH vs EW win rate 2/5 < required 3/7.",
+      "H3 cannot be evaluated because the script does not emit a SOL-HODL lane."
+    ],
+    "recommendation": "BLOCKING until (a) script is parameterized to accept the final 8-token universe, (b) a SOL-HODL benchmark lane is added, and (c) the rerun produces bible-HIGH mean Sharpe > EW in majority of windows. Current signal does not support bible-EBM ranking as alpha over equal-weight."
+  }
+}
