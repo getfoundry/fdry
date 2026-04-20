@@ -38,3 +38,8 @@ coverage/
 
 # misc
 runs/
+
+# tool artifacts
+.claude/
+.zigrep_archive
+**/.zigrep_archive
