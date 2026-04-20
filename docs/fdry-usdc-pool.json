@@ -1,0 +1,7 @@
+{
+  "_status": "ABANDONED",
+  "_note": "FDRY/USDC Raydium CPMM pool. LP was burned; do not use. Oracle registration hit 6018 RequiredOracleFailed (insufficient observation history). See SYMMETRY_RAYDIUM_CPMM_ATTEMPT.md.",
+  "pool_id": "31pSFwJ7bkTw6t57gxLkZyeTK9DjoeEQHgPeYAoDhdDF",
+  "create_tx": "4QWhqrY6t3rCRMnHKCMbG5KPSHJJwoQwx4CtNWCQFa93qnTvrLwnV3KJFUcdJtZ8hiyewaWsAwv3Dxy5hosUZKgy",
+  "lp_burn_tx": "3P1CS1MdnuSgr6WuWQ1QanubH2sR3xNqwz7QECw8tRFBmGd1uNvgp1SYaRkJrkJb3TMwCLLudthK66ABH3m6oa4t"
+}
