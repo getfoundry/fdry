@@ -327,7 +327,7 @@ export default function Landing() {
               Old plan: liquid staking via a third party with opaque accounting. New plan: a Symmetry vault on Solana where every deposit, trade, and buyback is a public transaction. If we're asking you to trust the economics, the economics shouldn't require trust.
             </FAQ>
             <FAQ q="How does revenue flow back to holders?">
-              Products generate revenue, a share of it is converted to SOL and sent directly to the vault. NAV-per-share rises for every holder. Tracked per-source on the public ledger. Current routed revenue: $0 — this is the mechanism, not a promise.
+              Products generate revenue; a share is converted to SOL and sent directly to the vault via <span className="font-mono">buyVaultTx</span>. NAV-per-share rises for every holder; no new shares mint to the product team. Every routing has an on-chain memo (<span className="font-mono">source_revenue_YYYY_W##</span>) and appears in <span className="font-mono">ledger/revenue.jsonl</span>. Policy per product (current cut, cadence, trigger) lives in the public repo under <span className="font-mono">docs/REVENUE_POLICY.md</span>. Current routed revenue: $0 — this is mechanism + reference implementation, not a binding commitment until the first routing lands on-chain.
             </FAQ>
             <FAQ q="What you are not being promised.">
               Not a yield product. Not a guaranteed return or APY. Not alpha — the ranker underperforms equal-weight in backtest, so the vault ships as disciplined EW rotation. This is experimental DeFi. Capital is at risk. Don't deposit what you can't afford to lose.

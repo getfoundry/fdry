@@ -2,8 +2,12 @@
 /**
  * routers/unbrowse.ts
  *
- * DIMENSION — Land: revenue router for Unbrowse.
- * Converts Unbrowse revenue (USD-denominated) into vault deposits (SOL ->
+ * Revenue router for Unbrowse. **Reference implementation** — future per-product
+ * routers should copy this file with one or two substitutions (source label,
+ * any source-specific pricing oracle). Policy lives in docs/REVENUE_POLICY.md,
+ * mechanism lives here.
+ *
+ * Converts product revenue (USD-denominated) into vault deposits (SOL ->
  * stFDRY via Symmetry), and appends a machine-readable record to
  * ledger/revenue.jsonl.
  *
