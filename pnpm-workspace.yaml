@@ -5,3 +5,4 @@ packages:
   - 'ledger'
   - 'shared'
   - 'routers'
+  - 'examples/voltr-vault-interface'

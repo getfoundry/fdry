@@ -34,6 +34,13 @@ The host app needs:
 pnpm add @voltr/vault-sdk @solana/web3.js @solana/spl-token @coral-xyz/anchor
 ```
 
+This folder is also self-contained for local testing:
+
+```bash
+pnpm install
+pnpm test
+```
+
 ## Usage
 
 P: A host app uses this helper by building instructions, compiling a transaction, and asking the wallet to sign it.

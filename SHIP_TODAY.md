@@ -1,41 +1,29 @@
-# SHIP TODAY — FDRY vault v1
-*~3 hours total. Each step has a verify line. Stop if any verify fails.*
+# SHIP_TODAY
 
-## Prereqs (5 min)
-- [ ] ~120 SOL in CREATOR_WALLET (for $10k seed + fees)
-- [ ] Helius paid RPC key
-- [ ] Telegram bot (optional for alerts)
+## Today Scope
 
-## Execute
-- [ ] `pnpm install`
-  - Verify: `pnpm -v` prints, no install errors
-- [ ] `cp .env.example .env` → fill CREATOR_KEY, HOT_WALLET_KEY, SOLANA_RPC_URL
-  - Verify: `grep -c REPLACE .env` shows 0
-- [ ] `tsx scripts/createVault.ts --dry-run` → shows 6-token plan
-  - Verify: printed weights sum to 10000
-- [ ] `tsx scripts/createVault.ts` → creates vault, writes docs/vault.json
-  - Verify: `cat docs/vault.json` shows vault_pubkey
-  - Verify: solscan.io/account/<pubkey> shows account on-chain
-  - Verify: app.symmetry.fi/vaults/<pubkey> loads (404 → submit curation)
-- [ ] `tsx scripts/seed.ts --dry-run --amount-usd=10000` → shows ~117 SOL
-  - Verify: dry-run prints intended deposit + token splits
-- [ ] `tsx scripts/seed.ts --amount-usd=10000` → deposits
-  - Verify: `tail -1 ledger/deposits.jsonl` shows entry with tx signature
-- [ ] `tsx ledger/snapshot.ts` → writes ledger/today.json + latest.json
-  - Verify: `cat ledger/latest.json | jq .nav_sol` shows ~117
-- [ ] `git init && git add . && git commit -m "vault v1"`
-  - Verify: `git check-ignore .env` prints .env
-- [ ] Push to local github remote, enable Pages on /ledger
-  - Verify: `curl <pages-url>/latest.json` returns JSON
-- [ ] Copy POST 1 from docs/TELEGRAM_DRAFTS.md, fill links, publish
-  - Verify: post live, solscan + symmetry + pages links resolve
+P: Today's safe ship is the public Voltr/Ranger interface package, not a live vault launch.
+E: The current repo has a clean shareable helper under `examples/voltr-vault-interface`, but the root app and scripts are still legacy.
+E: Shipping the helper lets reviewers inspect the user transaction path without pretending the full app has already been migrated.
+L: Publish the interface package first, then migrate the app.
 
-## Do NOT do today
-- Deploy bot cron (wait 24h, verify first manual rebalance, then automate)
-- Open external deposits (14-day own-capital window)
-- Announce bible-EBM alpha or LLM service claims (post-2 ships tomorrow)
+Polished paragraph:
+Today's safe ship is the public Voltr/Ranger interface package, not a live vault launch. The current repo has a clean shareable helper under `examples/voltr-vault-interface`, but the root app and scripts are still legacy. Shipping the helper lets reviewers inspect the user transaction path without pretending the full app has already been migrated. Publish the interface package first, then migrate the app.
 
-## If something breaks
-- Stop. Do not proceed to next step.
-- See docs/FAILURE_MODES.md for response
-- If catastrophic: funds are on-chain, recoverable via sellVaultTx
+## Checklist
+
+- Verify `examples/voltr-vault-interface/README.md`.
+- Verify `examples/voltr-vault-interface/CONSOLIDATED_OVERVIEW.md`.
+- Run `cd examples/voltr-vault-interface && pnpm install && pnpm test`.
+- Confirm `docs/VOLTR_RANGER_SETUP.md` and `docs/CODE_STATUS.md` match the current code state.
+- Do not run legacy root launch scripts as the current ship path.
+
+## Stop Conditions
+
+P: Stop if the work requires manager authority, strategy trading, or NAV attestation from this public repo.
+E: Those operations are intentionally outside the public helper package.
+E: Mixing manager actions into the public share package would erase the boundary auditors need to review.
+L: Keep today's ship focused on user-signed entry and exit.
+
+Polished paragraph:
+Stop if the work requires manager authority, strategy trading, or NAV attestation from this public repo. Those operations are intentionally outside the public helper package. Mixing manager actions into the public share package would erase the boundary auditors need to review. Keep today's ship focused on user-signed entry and exit.

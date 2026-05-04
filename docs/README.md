@@ -2,28 +2,30 @@
 
 ## Canonical Setup
 
-P: The canonical FDRY vault setup is the Voltr/Ranger path.
-E: The public docs now point to `VOLTR_RANGER_SETUP.md` and the shareable client package under `examples/voltr-vault-interface`.
-E: These files describe user-signed deposit and instant-withdraw transactions against an existing Voltr/Ranger vault, not a separate public strategy contract.
-L: Use these docs as the source of truth for the public repo.
+P: The docs now treat the Voltr/Ranger client interface as the canonical public setup.
+E: `VOLTR_RANGER_SETUP.md` explains the current boundary, and `CODE_STATUS.md` marks older directories as legacy until they are rewritten.
+E: This matches the codebase as it stands: the shareable Voltr/Ranger helper exists under `examples/voltr-vault-interface`, while older app and automation code remains present but inactive.
+L: Start with these docs before using any older file in the repo.
 
 Polished paragraph:
-The canonical FDRY vault setup is the Voltr/Ranger path. The public docs now point to `VOLTR_RANGER_SETUP.md` and the shareable client package under `examples/voltr-vault-interface`. These files describe user-signed deposit and instant-withdraw transactions against an existing Voltr/Ranger vault, not a separate public strategy contract. Use these docs as the source of truth for the public repo.
+The docs now treat the Voltr/Ranger client interface as the canonical public setup. `VOLTR_RANGER_SETUP.md` explains the current boundary, and `CODE_STATUS.md` marks older directories as legacy until they are rewritten. This matches the codebase as it stands: the shareable Voltr/Ranger helper exists under `examples/voltr-vault-interface`, while older app and automation code remains present but inactive. Start with these docs before using any older file in the repo.
 
 ## Start Here
 
 | Document | Purpose |
 |---|---|
-| [VOLTR_RANGER_SETUP.md](./VOLTR_RANGER_SETUP.md) | Current architecture, boundary, and verification status |
+| [VOLTR_RANGER_SETUP.md](./VOLTR_RANGER_SETUP.md) | Current architecture and boundary |
+| [CODE_STATUS.md](./CODE_STATUS.md) | Current versus legacy code map |
 | [../examples/voltr-vault-interface/README.md](../examples/voltr-vault-interface/README.md) | Shareable client usage |
 | [../examples/voltr-vault-interface/CONSOLIDATED_OVERVIEW.md](../examples/voltr-vault-interface/CONSOLIDATED_OVERVIEW.md) | PEEL-style overview |
+| [GIT_HYGIENE.md](./GIT_HYGIENE.md) | Public repo safety rules |
 
-## Boundary
+## Removed Docs
 
-P: The public docs cover user entry and exit only.
-E: The public interface builds unsigned instructions that the user's wallet signs before submission.
-E: Manager rebalance, strategy trading, and NAV attestation are operational controls and stay outside this repo.
-L: This separation keeps the public docs useful without exposing manager-only mechanics.
+P: Older strategy docs were removed because they no longer describe the active public setup.
+E: The previous docs described an earlier bot, signal, router, and launch plan that no longer matches the current Voltr/Ranger client interface.
+E: Keeping those files beside the current setup would make reviewers think stale launch steps are still valid.
+L: The remaining docs are intentionally small so the public repo has one clear story.
 
 Polished paragraph:
-The public docs cover user entry and exit only. The public interface builds unsigned instructions that the user's wallet signs before submission. Manager rebalance, strategy trading, and NAV attestation are operational controls and stay outside this repo. This separation keeps the public docs useful without exposing manager-only mechanics.
+Older strategy docs were removed because they no longer describe the active public setup. The previous docs described an earlier bot, signal, router, and launch plan that no longer matches the current Voltr/Ranger client interface. Keeping those files beside the current setup would make reviewers think stale launch steps are still valid. The remaining docs are intentionally small so the public repo has one clear story.

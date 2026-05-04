@@ -2,13 +2,13 @@
 
 ## Setup Claim
 
-P: FDRY's current vault interface is built around an existing Voltr/Ranger vault on Solana.
+P: FDRY's current public vault interface is built around an existing Voltr/Ranger vault on Solana.
 E: The public client helper calls `@voltr/vault-sdk` builders for `createDepositVaultIx` and `createInstantWithdrawVaultIx`.
-E: This makes the public repo a transaction-building layer rather than a new on-chain program or a strategy operator.
+E: This makes the current public code a transaction-building layer rather than a full app, new on-chain program, or strategy operator.
 L: The correct mental model is "user wallet signs a Voltr/Ranger vault transaction."
 
 Polished paragraph:
-FDRY's current vault interface is built around an existing Voltr/Ranger vault on Solana. The public client helper calls `@voltr/vault-sdk` builders for `createDepositVaultIx` and `createInstantWithdrawVaultIx`. This makes the public repo a transaction-building layer rather than a new on-chain program or a strategy operator. The correct mental model is "user wallet signs a Voltr/Ranger vault transaction."
+FDRY's current public vault interface is built around an existing Voltr/Ranger vault on Solana. The public client helper calls `@voltr/vault-sdk` builders for `createDepositVaultIx` and `createInstantWithdrawVaultIx`. This makes the current public code a transaction-building layer rather than a full app, new on-chain program, or strategy operator. The correct mental model is "user wallet signs a Voltr/Ranger vault transaction."
 
 ## User Path
 
@@ -22,13 +22,23 @@ Users enter and exit the vault through wallet-signed transactions. `buildDeposit
 
 ## Operator Path
 
-P: Operator-side strategy actions are separate from the public client.
-E: Rebalance execution and NAV attestation require manager authority and are intentionally excluded from `examples/voltr-vault-interface`.
-E: That separation keeps public code focused on user-approved transactions while private operational code handles strategy risk.
+P: Operator-side strategy actions are not implemented as current public code in this repo.
+E: The public helper excludes rebalance execution, strategy trading, and NAV attestation.
+E: That separation keeps public code focused on user-approved transactions while operator-side work is designed and verified elsewhere.
 L: Public users should see deposit and withdrawal mechanics, not manager controls.
 
 Polished paragraph:
-Operator-side strategy actions are separate from the public client. Rebalance execution and NAV attestation require manager authority and are intentionally excluded from `examples/voltr-vault-interface`. That separation keeps public code focused on user-approved transactions while private operational code handles strategy risk. Public users should see deposit and withdrawal mechanics, not manager controls.
+Operator-side strategy actions are not implemented as current public code in this repo. The public helper excludes rebalance execution, strategy trading, and NAV attestation. That separation keeps public code focused on user-approved transactions while operator-side work is designed and verified elsewhere. Public users should see deposit and withdrawal mechanics, not manager controls.
+
+## Legacy Directories
+
+P: The root app, bot, router, script, and ledger directories are legacy until migrated.
+E: `docs/CODE_STATUS.md` lists those directories separately from the active Voltr/Ranger helper.
+E: This prevents old code from being mistaken for the current launch path while keeping the repository history available.
+L: Update this setup doc when those directories are rewritten around the current vault.
+
+Polished paragraph:
+The root app, bot, router, script, and ledger directories are legacy until migrated. `docs/CODE_STATUS.md` lists those directories separately from the active Voltr/Ranger helper. This prevents old code from being mistaken for the current launch path while keeping the repository history available. Update this setup doc when those directories are rewritten around the current vault.
 
 ## Public Files
 
@@ -42,9 +52,9 @@ Operator-side strategy actions are separate from the public client. Rebalance ex
 ## Verification
 
 P: The public helper has a small test and a clean text scan for private operational references.
-E: `npm run test -- voltrUserClient` passes in the frontend package, and the public example folder has been scanned for private remotes, local host references, and operator credential names.
+E: `cd examples/voltr-vault-interface && pnpm install && pnpm test` checks the helper's decimal parsing, and the public example folder has been scanned for private remotes, local host references, and operator credential names.
 E: This verifies the package is clean to share, but it does not replace a live wallet-signed transaction test against the target vault.
 L: Before production deposits, run a small wallet-signed deposit and withdraw proof.
 
 Polished paragraph:
-The public helper has a small test and a clean text scan for private operational references. `npm run test -- voltrUserClient` passes in the frontend package, and the public example folder has been scanned for private remotes, local host references, and operator credential names. This verifies the package is clean to share, but it does not replace a live wallet-signed transaction test against the target vault. Before production deposits, run a small wallet-signed deposit and withdraw proof.
+The public helper has a small test and a clean text scan for private operational references. `cd examples/voltr-vault-interface && pnpm install && pnpm test` checks the helper's decimal parsing, and the public example folder has been scanned for private remotes, local host references, and operator credential names. This verifies the package is clean to share, but it does not replace a live wallet-signed transaction test against the target vault. Before production deposits, run a small wallet-signed deposit and withdraw proof.

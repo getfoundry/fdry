@@ -56,21 +56,21 @@ Rebalancing and NAV attestation belong in the private executor repo, not the pub
 
 P: The safest public package is the `examples/voltr-vault-interface` folder.
 E: It contains the reusable client file, a small test file for amount parsing, a usage README, and this consolidated overview.
-E: That is enough for another engineer or auditor to understand how the browser/client side sends user-approved requests to the vault contract without touching private execution code.
+E: That is enough for another engineer or auditor to understand how the browser/client side sends user-approved requests to the vault contract without relying on legacy app code elsewhere in the repo.
 L: Share this folder when the goal is to explain the client contract interface without exposing the manager system.
 
 Polished paragraph:
-The safest public package is the `examples/voltr-vault-interface` folder. It contains the reusable client file, a small test file for amount parsing, a usage README, and this consolidated overview. That is enough for another engineer or auditor to understand how the browser/client side sends user-approved requests to the vault contract without touching private execution code. Share this folder when the goal is to explain the client contract interface without exposing the manager system.
+The safest public package is the `examples/voltr-vault-interface` folder. It contains the reusable client file, a small test file for amount parsing, a usage README, and this consolidated overview. That is enough for another engineer or auditor to understand how the browser/client side sends user-approved requests to the vault contract without relying on legacy app code elsewhere in the repo. Share this folder when the goal is to explain the client contract interface without exposing the manager system.
 
 ## Verification Status
 
 P: The current client interface has a basic regression test and has been checked for private references.
-E: `npm run test -- voltrUserClient` passes in `frontend`, and a text scan of `examples/voltr-vault-interface` found no private signer names, token values, repository remotes, or local private host references.
+E: `pnpm test` checks decimal parsing inside this folder, and a text scan of `examples/voltr-vault-interface` found no private signer names, token values, repository remotes, or local private host references.
 E: This does not prove a live deposit or withdrawal landed on-chain, but it does prove the copied interface is clean, importable, and guarded against bad decimal input.
 L: The next proof step is a wallet-signed dry-run or small live transaction against the intended vault.
 
 Polished paragraph:
-The current client interface has a basic regression test and has been checked for private references. `npm run test -- voltrUserClient` passes in `frontend`, and a text scan of `examples/voltr-vault-interface` found no private signer names, token values, repository remotes, or local private host references. This does not prove a live deposit or withdrawal landed on-chain, but it does prove the copied interface is clean, importable, and guarded against bad decimal input. The next proof step is a wallet-signed dry-run or small live transaction against the intended vault.
+The current client interface has a basic regression test and has been checked for private references. `pnpm test` checks decimal parsing inside this folder, and a text scan of `examples/voltr-vault-interface` found no private signer names, token values, repository remotes, or local private host references. This does not prove a live deposit or withdrawal landed on-chain, but it does prove the copied interface is clean, importable, and guarded against bad decimal input. The next proof step is a wallet-signed dry-run or small live transaction against the intended vault.
 
 ## Open Audit Questions
 
@@ -81,6 +81,16 @@ L: The public interface can be shared now, but production readiness depends on t
 
 Polished paragraph:
 The main remaining audit questions are about operational authority, not the public client helper itself. The private strategy path depends on manager and hot-wallet controls, while the public client helper only builds user-signed deposit and instant-withdraw instructions. Auditors should therefore review multisig setup, manager key custody, NAV attestation policy, swap caps, and stale-price behavior separately from the frontend transaction builder. The public interface can be shared now, but production readiness depends on the private authority model being accepted.
+
+## Codebase Caveat
+
+P: The rest of this public repo is not yet migrated to the current Voltr/Ranger path.
+E: `docs/CODE_STATUS.md` marks the root app, bot, scripts, routers, and ledger as legacy until rewritten.
+E: That caveat matters because readers may otherwise assume every directory matches the shareable helper.
+L: Use the example folder for current review, and treat other directories as reference only.
+
+Polished paragraph:
+The rest of this public repo is not yet migrated to the current Voltr/Ranger path. `docs/CODE_STATUS.md` marks the root app, bot, scripts, routers, and ledger as legacy until rewritten. That caveat matters because readers may otherwise assume every directory matches the shareable helper. Use the example folder for current review, and treat other directories as reference only.
 
 ## Quick Map
 

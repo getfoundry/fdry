@@ -1,54 +1,41 @@
 # RUNBOOK
 
-Post-launch operational runbook.
+## Current Scope
 
-## Daily (automated via cron)
-- 00:00 UTC: bot/src/main.ts fires, reads signal, applies weights
-- 00:10 UTC: ledger/snapshot.ts fires, writes daily NAV snapshot
-- Both report to Telegram on success/failure
+P: This runbook only covers the current public Voltr/Ranger client interface.
+E: The active package is `examples/voltr-vault-interface`, and it builds user-signed deposit and instant-withdraw instructions.
+E: The older bot, router, ledger, and script flows in this repo are legacy and should not be run as current operations.
+L: Operational work should start by proving the public helper against the target vault.
 
-## Weekly (manual, 15 min)
-- Review ledger trend vs SOL-HODL baseline
-- Rotate HOT_WALLET key (if desired)
-- Verify healthcheck.io dead-man switch is green
-- Commit week's ledger snapshots to GitHub
+Polished paragraph:
+This runbook only covers the current public Voltr/Ranger client interface. The active package is `examples/voltr-vault-interface`, and it builds user-signed deposit and instant-withdraw instructions. The older bot, router, ledger, and script flows in this repo are legacy and should not be run as current operations. Operational work should start by proving the public helper against the target vault.
 
-## Monthly
-- Review fees collected (via Symmetry withdrawVaultFeesTx)
-- Review Unbrowse monetization progress
-- Review AUM + depositor count
-- Telegram digest post to community
+## Daily Operations
 
-## Incident response
+P: There are no active daily cron operations in the public repo.
+E: The current public code does not include a live Voltr/Ranger manager bot, hosted rebalance job, or public NAV writer.
+E: This prevents stale automation docs from implying that strategy operations are already wired here.
+L: Daily operations begin only after the app and manager path are migrated and verified.
 
-### Bot fails to fire
-1. Check Railway logs
-2. Check healthcheck.io
-3. Check signal freshness
-4. Manual rebalance: `tsx bot/src/main.ts --force`
+Polished paragraph:
+There are no active daily cron operations in the public repo. The current public code does not include a live Voltr/Ranger manager bot, hosted rebalance job, or public NAV writer. This prevents stale automation docs from implying that strategy operations are already wired here. Daily operations begin only after the app and manager path are migrated and verified.
 
-### HOT_WALLET compromised
-1. STOP: pause bot cron in Railway
-2. Generate new hot wallet
-3. CREATOR_WALLET signs manager-remove + manager-add per SPEC §4.1
-4. Update HOT_WALLET_KEY env var
-5. Resume bot
+## Manual Verification
 
-### Symmetry protocol exploit
-1. STOP: disable frontend deposits
-2. Monitor Symmetry community channels
-3. If funds recoverable: use sellVaultTx to evacuate
-4. If not: communicate transparently on Telegram
+P: The next manual proof is a wallet-signed deposit and instant withdraw against the intended vault.
+E: The helper can already build the required instruction arrays through `buildDepositVaultIxs(...)` and `buildInstantWithdrawVaultIxs(...)`.
+E: A small live transaction proves the vault address, asset mint, LP mint, wallet adapter, and token account setup all agree.
+L: Do not open public deposits until that proof is captured.
 
-### Sharp ledger NAV drop
-1. Verify it's real (pool-pricing glitch can show false NAV)
-2. Check trades over last 24h for root cause
-3. Post to Telegram within 4h with context
+Polished paragraph:
+The next manual proof is a wallet-signed deposit and instant withdraw against the intended vault. The helper can already build the required instruction arrays through `buildDepositVaultIxs(...)` and `buildInstantWithdrawVaultIxs(...)`. A small live transaction proves the vault address, asset mint, LP mint, wallet adapter, and token account setup all agree. Do not open public deposits until that proof is captured.
 
-## Key rotation
-- HOT_WALLET: quarterly + on-suspicion
-- CREATOR_WALLET: only if compromised; requires SPEC §4.1 ceremony
+## Incident Response
 
-## Contacts
-- Telegram: [chat]
-- Emergency: [operator's phone]
+P: Incidents should be handled at the wallet and vault transaction layer until the full app is migrated.
+E: If a deposit or withdraw fails, capture the transaction signature if one exists, the wallet address, the vault address, the asset mint, the LP mint, and the exact UI or RPC error.
+E: Those facts are enough to distinguish user rejection, token account setup, stale blockhash, insufficient balance, and program rejection.
+L: Keep incident notes concrete so the next fix lands in the transaction builder or app integration.
+
+Polished paragraph:
+Incidents should be handled at the wallet and vault transaction layer until the full app is migrated. If a deposit or withdraw fails, capture the transaction signature if one exists, the wallet address, the vault address, the asset mint, the LP mint, and the exact UI or RPC error. Those facts are enough to distinguish user rejection, token account setup, stale blockhash, insufficient balance, and program rejection. Keep incident notes concrete so the next fix lands in the transaction builder or app integration.
