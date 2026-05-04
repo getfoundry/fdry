@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import {
   ConnectionProvider,
   WalletProvider,
@@ -45,6 +45,7 @@ function AppRoot() {
                 <Route path="/" element={<Landing />} />
                 <Route path="/vaults" element={<VaultsPage />} />
                 <Route path="/vault" element={<VaultPage />} />
+                <Route path="/davids-vault" element={<Navigate to="/vault" replace />} />
               </Routes>
             </BrowserRouter>
           </QueryClientProvider>

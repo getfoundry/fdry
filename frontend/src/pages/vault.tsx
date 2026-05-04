@@ -4,6 +4,7 @@ import { useLiveTreasury } from "../hooks/useLiveTreasury";
 import { useVaultInfo } from "../hooks/useVaultInfo";
 import { DepositWidget } from "../components/DepositWidget";
 import { PortfolioPanel } from "../components/PortfolioPanel";
+import { StrategyLivePanel } from "../components/StrategyLivePanel";
 import NavChart from "../components/NavChart";
 import {
   findVaultEntry,
@@ -217,29 +218,25 @@ export default function VaultPage() {
             <span className="text-xs font-mono text-ember uppercase tracking-wider">// the strategy</span>
           </div>
           <h2 className="font-display text-2xl md:text-3xl font-bold mb-4 lowercase">
-            <span className="molten-text">david</span> — can a retail-sized bot beat just holding sol?
+            <span className="molten-text">david</span> is part of this vault, not a second vault.
           </h2>
           <div className="text-sm md:text-base text-ink/80 leading-relaxed space-y-3 font-mono lowercase">
             <p>
-              david is a small scalping bot running under the vault. every ~30 seconds it clusters 39 solana tokens by how they're moving right now (1h return, recent vol, drawdown, vol-scaled momentum), runs k-means w/ k=7, picks the <span className="text-ink font-semibold">underdog</span> (token closest to the center of the laggard cluster — beaten-down + statistically overdue for a bounce), and opens a long for a fixed hold.
+              david is the strategy process that can operate under the FDRY vault. it is not a separate deposit product, not a separate share token, and not a second place to send capital. the only user-facing vault is this Voltr vault.
             </p>
             <p>
-              <span className="text-ink font-semibold">the underdog framing is the whole point.</span> big funds pay &lt;1bp per trade and see orderflow. retail gets hit by ~60bp jupiter taker fees round-trip. most online "strategies" quote zero-fee returns and collapse once real fees land. david ships with a fees on/off toggle so u can see the actual gap urself. forging the tools to compete with giants, on purpose.
+              <span className="text-ink font-semibold">the strategy idea:</span> cluster Solana tokens by recent movement, pick the statistical underdog, and only count results after real frictions. the live panel below reads the actual Voltr service state. it does not invent paper P&L.
             </p>
             <p>
-              <span className="text-ink font-semibold">only the 4h hold is honest enough to trade live.</span> shorter timeframes (1m/3m/5m/15m/60m) flip too often — a 1-min strat fires ~1,440x/day, fees eat ~864% annually, no edge survives. the 4h hold fires ~6x/day so fees stay tractable (~130% fee drag vs realistic 200-300% gross edge). the dashboard proves this empirically when u flip fees on.
+              <span className="text-ink font-semibold">the accounting rule:</span> if the broker bridge reports no open execution positions, the frontend must say no open broker risk. if the vault has no on-chain strategy movement, the vault chart must stay quiet. live means observed live state, not a backtest label.
             </p>
             <p>
-              <span className="text-ink font-semibold">exit rules:</span> close after hold expires, 0.75% trailing stop cuts losses early. max 1 entry per 15 min. 30% of nav per trade. on-chain mirrors this exactly.
-            </p>
-            <p>
-              <span className="text-ink font-semibold">how this feeds FDRY:</span> when an underdog bounces, david sells it back into FDRY at a higher price — that's a buy on FDRY funded by someone else's rally. every successful round-trip lifts nav-per-share for every stFDRY holder. when a scalp misses, less FDRY comes back + nav dips. expect volatility on both FDRY and stFDRY in the short term.
-            </p>
-            <p className="text-muted">
-              <span className="text-ink">what we wont claim:</span> profitability until the 4h line stays above $10k w/ fees ON for 30+ days. market-beating. ai (its k-means + a pick-the-underdog rule). the process is the product.
+              <span className="text-ink font-semibold">what we will not claim:</span> market-beating returns, guaranteed profit, or live trading from simulated rows. this page can show live service state and on-chain vault state; anything else belongs in research notes.
             </p>
           </div>
         </section>
+
+        <StrategyLivePanel />
 
 
         <section className="rounded-3xl border-2 border-ember/30 bg-sunrise/40 p-6 md:p-8 mb-10">
