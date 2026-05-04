@@ -1,46 +1,29 @@
-# FDRY Quant Alpha Vault — Docs
+# FDRY Docs
 
-Design and implementation docs for the FDRY-entry quant rotation vault on Symmetry.
+## Canonical Setup
 
-## Start here
+P: The canonical FDRY vault setup is the Voltr/Ranger path.
+E: The public docs now point to `VOLTR_RANGER_SETUP.md` and the shareable client package under `examples/voltr-vault-interface`.
+E: These files describe user-signed deposit and instant-withdraw transactions against an existing Voltr/Ranger vault, not a separate public strategy contract.
+L: Use these docs as the source of truth for the public repo.
+
+Polished paragraph:
+The canonical FDRY vault setup is the Voltr/Ranger path. The public docs now point to `VOLTR_RANGER_SETUP.md` and the shareable client package under `examples/voltr-vault-interface`. These files describe user-signed deposit and instant-withdraw transactions against an existing Voltr/Ranger vault, not a separate public strategy contract. Use these docs as the source of truth for the public repo.
+
+## Start Here
 
 | Document | Purpose |
 |---|---|
-| [SPEC.md](./SPEC.md) | Full product spec. Architecture, vault config, flows, risks, decisions. |
-| [SHIP.md](./SHIP.md) | Day-by-day checklist from pre-flight to public launch. |
-| [SYMMETRY.md](./SYMMETRY.md) | Symmetry protocol reference — SDK calls, roles, fees. |
+| [VOLTR_RANGER_SETUP.md](./VOLTR_RANGER_SETUP.md) | Current architecture, boundary, and verification status |
+| [../examples/voltr-vault-interface/README.md](../examples/voltr-vault-interface/README.md) | Shareable client usage |
+| [../examples/voltr-vault-interface/CONSOLIDATED_OVERVIEW.md](../examples/voltr-vault-interface/CONSOLIDATED_OVERVIEW.md) | PEEL-style overview |
 
-## Key facts
+## Boundary
 
-- **Venue:** Symmetry V3 (mainnet, permissionless), Program ID `BASKT7aKd8n7ibpUbwLP3Wiyxyi3yoiXsxBk4Hpumate`
-- **Entry token:** FDRY (via frontend Jupiter wrapper — not held inside vault)
-- **Trading base:** SOL, across 8-token memecoin universe
-- **Cadence:** Daily rebalance, driven by bible-EBM signal
-- **Fee:** 2% annual creator fee
-- **Pattern:** Option A (frontend-only 2-tx deposit/withdraw), no custom contract in v1
-- **Status:** Pre-launch, Phase 0 (oracle verification + pool bootstrap)
+P: The public docs cover user entry and exit only.
+E: The public interface builds unsigned instructions that the user's wallet signs before submission.
+E: Manager rebalance, strategy trading, and NAV attestation are operational controls and stay outside this repo.
+L: This separation keeps the public docs useful without exposing manager-only mechanics.
 
-## Non-goals (v1)
-
-- Lock FDRY — this architecture cycles FDRY, does not lock it
-- Generate meaningful fee income — $400/year expected at v1 AUM scale
-- Performance fees — disabled at Symmetry protocol level
-- Personal profitability — v1 is about mechanism validation and public track record
-
-## File layout (to be created during implementation)
-
-```
-fdry/
-├── docs/
-│   ├── README.md        (this file)
-│   ├── SPEC.md
-│   ├── SHIP.md
-│   ├── SYMMETRY.md
-│   ├── oracles.json     (Phase 0.1 output — oracle pubkeys per token)
-│   ├── pool.json        (Phase 0.2 output — Meteora pool metadata)
-│   └── vault.json       (Phase 1.2 output — mainnet vault pubkey + keys)
-├── frontend/            (Phase 2)
-├── bot/                 (Phase 3)
-└── runs/
-    └── spec_final_backtest/   (Phase 0.3 output)
-```
+Polished paragraph:
+The public docs cover user entry and exit only. The public interface builds unsigned instructions that the user's wallet signs before submission. Manager rebalance, strategy trading, and NAV attestation are operational controls and stay outside this repo. This separation keeps the public docs useful without exposing manager-only mechanics.

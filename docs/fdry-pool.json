@@ -1,7 +1,0 @@
-{
-  "_status": "ABANDONED",
-  "_note": "FDRY/WSOL Raydium CPMM pool. LP was burned; do not use. Symmetry raydium_cpmm oracle rejected FDRY/WSOL (wants USDC quote). See SYMMETRY_RAYDIUM_CPMM_ATTEMPT.md.",
-  "pool_id": "F6TSABcYeudY4ovxT2jzmabKw7xCdFowUbFtcQtmJnTi",
-  "create_tx": "4SZZF5gsvuiNNKEAuZ5Am4ozSKiRudojPGzCwHrxtWxnW2JXnnR3ihepG4Bjm2Jrts8uVVVTDYQQQGGb2gUuTn6T",
-  "lp_burn_tx": "246qzdisi8M7AnU9n82ikXzD3xz2UsUoaiUFZPVN3VvkxbjpnhMjPB3iYH72DQhyozCAWpAgb1FXCwzAwPDKgBnw"
-}
