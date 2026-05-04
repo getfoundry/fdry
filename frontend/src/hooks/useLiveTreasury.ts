@@ -1,5 +1,9 @@
 import { useEffect, useState } from "react";
 import { Connection, PublicKey, LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { VoltrClient } from "@voltr/vault-sdk";
+import { getAssociatedTokenAddressSync, TOKEN_PROGRAM_ID } from "@solana/spl-token";
+
+const FDRY_MINT_STR = "2ZiSPGncrkwWa6GBZB4EDtsfq7HEWwkwsPFzEXieXjNL";
 
 const RPC = "https://solana-rpc.publicnode.com";
 const HERMES_SOL =
@@ -21,14 +25,18 @@ export type Activity = {
 };
 
 export type LiveTreasury = {
-  solBalance: number;
+  fdryBalance: number;
+  nativeSolBalance: number;
   solPrice: number;
+  fdryPriceUsd: number;
   navUsd: number;
   navFromTokens: number;
   sharesOutstanding: number;
   navPerShareUsd: number;
   solscanAccount: string;
   solscanMint: string;
+  idleAuthAddr: string;
+  fdryAtaAddr: string;
   holdings: Holding[];
   activity: Activity[];
   loading: boolean;
@@ -66,6 +74,25 @@ async function fetchSolPriceUsd(): Promise<number> {
   const usd = Number(p.price) * Math.pow(10, p.expo);
   pythPriceCache = { v: usd, t: now };
   return usd;
+}
+
+const FDRY_POOL = "2jC1LpGY1ZjL9UerTFDmTNM4kc2AhHydK4tqqqgbJdhh";
+const FDRY_GECKO = `https://api.geckoterminal.com/api/v2/networks/solana/pools/${FDRY_POOL}`;
+let fdryPriceCache: { v: number; t: number } = { v: 0, t: 0 };
+async function fetchFdryPriceUsd(): Promise<number> {
+  const now = Date.now();
+  if (fdryPriceCache.v && now - fdryPriceCache.t < 30_000) return fdryPriceCache.v;
+  try {
+    const r = await fetch(FDRY_GECKO);
+    if (!r.ok) throw new Error(`gecko ${r.status}`);
+    const j = await r.json();
+    const price = Number(j?.data?.attributes?.base_token_price_usd ?? 0);
+    if (!price || !Number.isFinite(price)) throw new Error("gecko shape");
+    fdryPriceCache = { v: price, t: now };
+    return price;
+  } catch {
+    return fdryPriceCache.v || 0;
+  }
 }
 
 async function fetchTokenAccounts(
@@ -127,14 +154,18 @@ async function fetchRecentActivity(conn: Connection, address: PublicKey, limit =
 
 export function useLiveTreasury(vaultPubkey: string, vaultMint: string) {
   const [state, setState] = useState<LiveTreasury>({
-    solBalance: 0,
+    fdryBalance: 0,
+    nativeSolBalance: 0,
     solPrice: 0,
+    fdryPriceUsd: 0,
     navUsd: 0,
     navFromTokens: 0,
     sharesOutstanding: 0,
     navPerShareUsd: 0,
     solscanAccount: `https://solscan.io/account/${vaultPubkey}`,
     solscanMint: `https://solscan.io/token/${vaultMint}`,
+    idleAuthAddr: "",
+    fdryAtaAddr: "",
     holdings: [],
     activity: [],
     loading: true,
@@ -149,40 +180,49 @@ export function useLiveTreasury(vaultPubkey: string, vaultMint: string) {
     const mintPk = new PublicKey(vaultMint);
     const load = async () => {
       try {
-        const [balance, supply, solPrice, tokenAccounts, activity] = await Promise.all([
+        const client = new VoltrClient(conn);
+        const fdryMint = new PublicKey(FDRY_MINT_STR);
+        const idleAuth = client.findVaultAssetIdleAuth(vaultPk);
+        const fdryAta = getAssociatedTokenAddressSync(fdryMint, idleAuth, true, TOKEN_PROGRAM_ID);
+        const [balance, supply, solPrice, fdryPriceUsd, fdryBalRes, activity] = await Promise.all([
           conn.getBalance(vaultPk),
           conn.getTokenSupply(mintPk),
-          fetchSolPriceUsd(),
-          fetchTokenAccounts(conn, vaultPk),
-          fetchRecentActivity(conn, vaultPk),
+          fetchSolPriceUsd().catch(() => 0),
+          fetchFdryPriceUsd(),
+          conn.getTokenAccountBalance(fdryAta).catch(() => null),
+          fetchRecentActivity(conn, vaultPk).catch(() => []),
         ]);
         if (!alive) return;
-        const solBalance = balance / LAMPORTS_PER_SOL;
+        const nativeSolBalance = balance / LAMPORTS_PER_SOL;
+        const fdryBalance = Number(fdryBalRes?.value?.uiAmountString ?? "0");
+        const fdryDecimals = fdryBalRes?.value?.decimals ?? 9;
         const supplyNum = Number(supply.value.amount) / Math.pow(10, supply.value.decimals);
-        const holdings: Holding[] = tokenAccounts
-          .filter((t) => t.amount > 0)
-          .map((t) => {
-            const known = KNOWN_TOKENS[t.mint];
-            const symbol = known?.symbol ?? `${t.mint.slice(0, 4)}…${t.mint.slice(-4)}`;
-            const usd =
-              known?.priceHint === "SOL"
-                ? t.amount * solPrice
-                : known?.priceHint === "USD"
-                  ? t.amount
-                  : 0;
-            return { mint: t.mint, symbol, amount: t.amount, decimals: t.decimals, usd };
-          });
-        const navFromTokens = holdings.reduce((s, h) => s + h.usd, 0);
-        const navUsd = navFromTokens; // tokens are the real NAV; native SOL is rent
-        const navPerShareUsd = supplyNum > 0 ? navUsd / supplyNum : 0;
+        const fdryUsd = fdryBalance * fdryPriceUsd;
+        const holdings: Holding[] = fdryBalance > 0
+          ? [{
+              mint: FDRY_MINT_STR,
+              symbol: "FDRY",
+              amount: fdryBalance,
+              decimals: fdryDecimals,
+              usd: fdryUsd,
+            }]
+          : [];
+        const navFromTokens = fdryUsd;
+        const navUsd = navFromTokens;
+        // Empty vault: NAV/share is the starting invariant (1 asset-unit per share), priced at the live asset USD price.
+        const navPerShareUsd = supplyNum > 0 ? navUsd / supplyNum : fdryPriceUsd;
         setState((s) => ({
           ...s,
-          solBalance,
+          fdryBalance,
+          nativeSolBalance,
           solPrice,
+          fdryPriceUsd,
           navUsd,
           navFromTokens,
           sharesOutstanding: supplyNum,
           navPerShareUsd,
+          idleAuthAddr: idleAuth.toBase58(),
+          fdryAtaAddr: fdryAta.toBase58(),
           holdings,
           activity,
           loading: false,

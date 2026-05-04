@@ -1,85 +1,114 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
-  Connection,
   LAMPORTS_PER_SOL,
   PublicKey,
+  TransactionMessage,
   VersionedTransaction,
 } from "@solana/web3.js";
-import { SymmetryCore } from "@symmetry-hq/sdk";
-import { buildJupSwapTx, fetchJupQuote, type JupQuote } from "../lib/jupiter";
+import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+import { WalletMultiButton } from "@solana/wallet-adapter-react-ui";
+import { VoltrClient } from "@voltr/vault-sdk";
+import {
+  getAssociatedTokenAddressSync,
+  TOKEN_PROGRAM_ID,
+} from "@solana/spl-token";
+import { recordDeposit, recordWithdraw } from "../lib/positionLedger";
+import {
+  buildDepositVaultIxs,
+  buildInstantWithdrawVaultIxs,
+  decimalAmountToBaseUnits,
+} from "../lib/voltrUserClient";
 
-const RPC = "https://solana-rpc.publicnode.com";
-const WSOL = "So11111111111111111111111111111111111111112";
 const FDRY_MINT = "2ZiSPGncrkwWa6GBZB4EDtsfq7HEWwkwsPFzEXieXjNL";
-
-type PhantomLike = {
-  isPhantom?: boolean;
-  publicKey: PublicKey | null;
-  connect: (opts?: { onlyIfTrusted?: boolean }) => Promise<{ publicKey: PublicKey }>;
-  disconnect: () => Promise<void>;
-  signTransaction<T extends VersionedTransaction | import("@solana/web3.js").Transaction>(tx: T): Promise<T>;
-  signAllTransactions<T extends VersionedTransaction | import("@solana/web3.js").Transaction>(txs: T[]): Promise<T[]>;
-};
-
-function getPhantom(): PhantomLike | null {
-  if (typeof window === "undefined") return null;
-  const w = window as unknown as { phantom?: { solana?: PhantomLike }; solana?: PhantomLike };
-  const p = w.phantom?.solana ?? w.solana;
-  return p && p.isPhantom ? p : null;
-}
+const FDRY_DECIMALS = 9;
+// FDRY is classic SPL Token (verified in scripts/seedRangerFdryVault.ts) — hardcoded to skip a round-trip.
+const ASSET_TOKEN_PROGRAM = TOKEN_PROGRAM_ID;
 
 type Mode = "deposit" | "withdraw";
 type Step =
   | "idle"
   | "connecting"
-  | "quoting"
   | "building"
-  | "signing_swap"
-  | "confirming_swap"
-  | "signing_buy"
-  | "signing_lock"
-  | "signing_sell"
-  | "confirming_sell"
+  | "signing"
+  | "confirming"
   | "done_deposit"
   | "done_withdraw"
   | "error";
 
 type Props = {
-  vaultMint: string;
-  vaultPubkey: string;
-  solPriceUsd?: number;
-  navPerShareUsd?: number;
+  vaultMint: string;    // LP / share mint (e.g. stFDRY-v2)
+  vaultPubkey: string;  // Voltr vault pubkey
+  // Asset this vault accepts. Defaults to FDRY for backwards-compat with the
+  // canonical treasury page; other vaults (USDC, SOL, etc.) pass their own.
+  assetMint?: string;
+  assetDecimals?: number;
+  assetSymbol?: string;       // e.g. "FDRY", "USDC"
+  shareSymbol?: string;       // e.g. "stFDRY", "vUSDC"
+  navPerShareInFdry?: number; // UI preview fallback; 1.0 at launch
+  onPositionChange?: () => void; // fires after a successful deposit or withdraw
 };
 
-export function DepositWidget({ vaultMint, vaultPubkey: _vaultPubkey, solPriceUsd = 0, navPerShareUsd = 0 }: Props) {
+export function DepositWidget({
+  vaultMint,
+  vaultPubkey,
+  assetMint,
+  assetDecimals,
+  assetSymbol,
+  shareSymbol,
+  navPerShareInFdry = 1,
+  onPositionChange,
+}: Props) {
+  const fdryMint = assetMint ?? FDRY_MINT;
+  const assetDecs = assetDecimals ?? FDRY_DECIMALS;
+  const assetSym = assetSymbol ?? "FDRY";
+  const shareSym = shareSymbol ?? "stFDRY";
   const [mode, setMode] = useState<Mode>("deposit");
-  const [pubkey, setPubkey] = useState<PublicKey | null>(null);
+  const { publicKey, signTransaction, disconnect: walletDisconnect } = useWallet();
+  const { connection } = useConnection();
+  const pubkey = publicKey;
   const [fdryBalance, setFdryBalance] = useState<number | null>(null);
   const [stFdryBalance, setStFdryBalance] = useState<number | null>(null);
   const [solBalance, setSolBalance] = useState<number | null>(null);
 
   const [amount, setAmount] = useState("1000");
-  const [quote, setQuote] = useState<JupQuote | null>(null);
-  const [quoteErr, setQuoteErr] = useState<string | null>(null);
 
   const [step, setStep] = useState<Step>("idle");
   const [error, setError] = useState<string | null>(null);
   const [txs, setTxs] = useState<Array<{ label: string; sig: string }>>([]);
+  const [liveNav, setLiveNav] = useState<number | null>(null);
 
-  const connection = useMemo(() => new Connection(RPC, "confirmed"), []);
-  const sdk = useMemo(
-    () => new SymmetryCore({ connection, network: "mainnet", priorityFee: 75_000 }),
-    [connection],
-  );
+  const client = useMemo(() => new VoltrClient(connection), [connection]);
 
-  // Auto-reconnect trusted Phantom session
+  const vaultPk = useMemo(() => new PublicKey(vaultPubkey), [vaultPubkey]);
+  const vaultAssetMintPk = useMemo(() => new PublicKey(fdryMint), [fdryMint]);
+  const lpMintPk = useMemo(() => new PublicKey(vaultMint), [vaultMint]);
+
+  // Live NAV fetcher: totalFdry / lpSupply (base units, returns decimal)
+  const fetchNav = async (): Promise<number | null> => {
+    try {
+      const vaultAssetIdleAuth = client.findVaultAssetIdleAuth(vaultPk);
+      const vaultFdryAta = getAssociatedTokenAddressSync(
+        vaultAssetMintPk, vaultAssetIdleAuth, true, ASSET_TOKEN_PROGRAM,
+      );
+      const [idleRes, supplyRes] = await Promise.all([
+        connection.getTokenAccountBalance(vaultFdryAta).catch(() => null),
+        connection.getTokenSupply(lpMintPk).catch(() => null),
+      ]);
+      const idleRaw = idleRes?.value?.amount ? BigInt(idleRes.value.amount) : 0n;
+      const supplyRaw = supplyRes?.value?.amount ? BigInt(supplyRes.value.amount) : 0n;
+      if (supplyRaw === 0n) return 1;
+      // Asset and LP share the same decimals for this vault pattern, so the ratio is dimensionless.
+      return Number(idleRaw) / Number(supplyRaw);
+    } catch { return null; }
+  };
+
+  // Fetch NAV on mount and when vault changes
   useEffect(() => {
-    const ph = getPhantom();
-    if (!ph) return;
-    ph.connect({ onlyIfTrusted: true })
-      .then((r) => setPubkey(r.publicKey))
-      .catch(() => { /* silent */ });
-  }, []);
+    let alive = true;
+    fetchNav().then((n) => { if (alive && n != null) setLiveNav(n); });
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [vaultPubkey, fdryMint, vaultMint]);
 
   // Balance poll
   useEffect(() => {
@@ -95,7 +124,7 @@ export function DepositWidget({ vaultMint, vaultPubkey: _vaultPubkey, solPriceUs
         const [sol, tokens] = await Promise.all([
           connection.getBalance(pubkey),
           connection.getParsedTokenAccountsByOwner(pubkey, {
-            programId: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
+            programId: TOKEN_PROGRAM_ID,
           }),
         ]);
         if (!alive) return;
@@ -103,7 +132,7 @@ export function DepositWidget({ vaultMint, vaultPubkey: _vaultPubkey, solPriceUs
         let fdry = 0, stfdry = 0;
         for (const { account } of tokens.value) {
           const info = (account.data as { parsed: { info: { mint: string; tokenAmount: { uiAmount: number | null } } } }).parsed.info;
-          if (info.mint === FDRY_MINT) fdry = info.tokenAmount.uiAmount ?? 0;
+          if (info.mint === fdryMint) fdry = info.tokenAmount.uiAmount ?? 0;
           if (info.mint === vaultMint) stfdry = info.tokenAmount.uiAmount ?? 0;
         }
         setFdryBalance(fdry);
@@ -113,115 +142,121 @@ export function DepositWidget({ vaultMint, vaultPubkey: _vaultPubkey, solPriceUs
     load();
     const i = setInterval(load, 12_000);
     return () => { alive = false; clearInterval(i); };
-  }, [pubkey, connection, vaultMint]);
-
-  // Quote fetch (debounced) — only for deposit side
-  const quoteAbortRef = useRef<AbortController | null>(null);
-  useEffect(() => {
-    if (mode !== "deposit") { setQuote(null); return; }
-    const amt = parseFloat(amount || "0");
-    if (!amt || amt <= 0) { setQuote(null); setQuoteErr(null); return; }
-    setQuoteErr(null);
-    const timer = setTimeout(async () => {
-      quoteAbortRef.current?.abort();
-      const ac = new AbortController();
-      quoteAbortRef.current = ac;
-      try {
-        const raw = Math.floor(amt * 1_000_000_000); // FDRY decimals = 9
-        const q = await fetchJupQuote({ inputMint: FDRY_MINT, outputMint: WSOL, amountRaw: raw, slippageBps: 150 });
-        if (!ac.signal.aborted) setQuote(q);
-      } catch (e) {
-        if (!ac.signal.aborted) setQuoteErr((e as Error).message);
-      }
-    }, 400);
-    return () => clearTimeout(timer);
-  }, [mode, amount]);
-
-  const connect = async () => {
-    setError(null);
-    const ph = getPhantom();
-    if (!ph) {
-      window.open("https://phantom.app/download", "_blank", "noopener");
-      setError("Phantom not detected. Install it, then refresh.");
-      return;
-    }
-    setStep("connecting");
-    try {
-      const r = await ph.connect();
-      setPubkey(r.publicKey);
-      setStep("idle");
-    } catch (e) {
-      setError((e as Error).message || "Connection cancelled");
-      setStep("idle");
-    }
-  };
+  }, [pubkey, connection, vaultMint, fdryMint]);
 
   const disconnect = async () => {
-    try { await getPhantom()?.disconnect(); } catch { /* ignore */ }
-    setPubkey(null); setTxs([]); setStep("idle");
+    try { await walletDisconnect(); } catch { /* ignore */ }
+    setTxs([]); setStep("idle");
   };
 
   const humanizeErr = (raw: string): string => {
-    if (raw.includes("6075")) return "Symmetry 6075 · vault is in Genesis. Deposits unlock once the keeper processes the seed batch (~1 hour). No SOL was taken — tx failed atomically.";
-    if (/insufficient.*lamports|Transfer:.*insufficient/i.test(raw)) return "Insufficient SOL in wallet for gas (~0.01 SOL needed).";
+    if (/0xbc4|custom.*3012|AccountNotInitialized/i.test(raw)) {
+      return "LP account not created — try again (idempotent-create may have been skipped).";
+    }
+    if (/custom.*6015|InstantWithdrawNotAllowed/i.test(raw)) {
+      return "Instant withdraw is disabled for this vault (shouldn't happen — contact team).";
+    }
+    if (/insufficient.*lamports|Transfer:.*insufficient/i.test(raw)) {
+      return "Insufficient SOL in wallet for gas (~0.005 SOL needed).";
+    }
     if (/insufficient funds/i.test(raw)) return "Insufficient token balance.";
-    if (/User rejected|cancelled/i.test(raw)) return "You cancelled the signature in Phantom.";
-    if (/blockhash.*not found|Blockhash/i.test(raw)) return "Transaction expired. Try again.";
+    if (/User rejected|cancelled/i.test(raw)) return "You cancelled the signature.";
+    if (/blockhash.*not found|Blockhash|block height exceeded/i.test(raw)) {
+      return "Transaction expired. Try again.";
+    }
+    if (/custom.*6006|MaxCapExceeded|0x1776/i.test(raw)) {
+      return "Vault is full — the max cap is reached. Ask the admin to raise max_cap via update_vault_config.";
+    }
+    if (/custom.*6000(?!\d)|InvalidAmount|0x1770(?!\d)/i.test(raw)) {
+      return "Invalid amount — too small (dust) or otherwise rejected by the vault. Try a larger whole number.";
+    }
+    if (/custom.*6007|VaultNotActive|0x1777/i.test(raw)) {
+      return `Vault is paused. Check back shortly; no ${assetSym} was taken.`;
+    }
+    const customMatch = raw.match(/custom program error:\s*(0x[0-9a-fA-F]+|\d+)/);
+    if (customMatch) return `Program error ${customMatch[1]}. ${raw.slice(0, 160)}`;
     return raw.length > 240 ? raw.slice(0, 240) + "…" : raw;
   };
 
+  const sendAndConfirm = async (
+    instructions: import("@solana/web3.js").TransactionInstruction[],
+    label: string,
+  ): Promise<string> => {
+    if (!pubkey || !signTransaction) throw new Error("Connect wallet first");
+    // The builder owns Voltr-specific setup ixs. This function only compiles,
+    // asks the wallet to sign, submits, and confirms.
+    const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash("confirmed");
+    const msg = new TransactionMessage({
+      payerKey: pubkey,
+      recentBlockhash: blockhash,
+      instructions,
+    }).compileToV0Message();
+    const tx = new VersionedTransaction(msg);
+    setStep("signing");
+    const signed = await signTransaction(tx);
+    setStep("confirming");
+    const sig = await connection.sendRawTransaction(signed.serialize(), { skipPreflight: false, maxRetries: 5 });
+    // Recovery trail — if confirm hangs, user still has the signature.
+    console.log(`[${label}] sent:`, sig, `https://solscan.io/tx/${sig}`);
+    setTxs((t) => [...t, { label, sig }]);
+
+    // Confirm with a hard 90s timeout so the UI cannot hang forever.
+    const confirmPromise = connection.confirmTransaction(
+      { signature: sig, blockhash, lastValidBlockHeight },
+      "confirmed",
+    );
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("Confirmation timed out after 90s. Your tx may still land — check solscan with the signature above.")), 90_000),
+    );
+    await Promise.race([confirmPromise, timeout]);
+    return sig;
+  };
+
+  const reloadBalances = async () => {
+    if (!pubkey) return;
+    try {
+      const tokens = await connection.getParsedTokenAccountsByOwner(pubkey, {
+        programId: TOKEN_PROGRAM_ID,
+      });
+      let fdry = 0, stfdry = 0;
+      for (const { account } of tokens.value) {
+        const info = (account.data as { parsed: { info: { mint: string; tokenAmount: { uiAmount: number | null } } } }).parsed.info;
+        if (info.mint === fdryMint) fdry = info.tokenAmount.uiAmount ?? 0;
+        if (info.mint === vaultMint) stfdry = info.tokenAmount.uiAmount ?? 0;
+      }
+      setFdryBalance(fdry);
+      setStFdryBalance(stfdry);
+    } catch { /* ignore */ }
+  };
+
   const depositFromFdry = async () => {
-    const ph = getPhantom();
-    if (!ph || !pubkey || !quote) return;
+    if (!publicKey || !signTransaction || !pubkey) return;
+    const amt = parseFloat(amount || "0");
+    if (!amt || amt <= 0) return;
     setError(null); setTxs([]);
 
-    const walletForSdk = {
-      publicKey: pubkey,
-      signTransaction: ph.signTransaction.bind(ph),
-      signAllTransactions: ph.signAllTransactions.bind(ph),
-    };
-
     try {
-      // 1. Jupiter swap FDRY -> SOL
       setStep("building");
-      const swapTx = await buildJupSwapTx(quote, pubkey.toBase58());
-      setStep("signing_swap");
-      const signed = await ph.signTransaction(swapTx);
-      setStep("confirming_swap");
-      const swapSig = await connection.sendRawTransaction(signed.serialize(), { skipPreflight: false });
-      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash();
-      await connection.confirmTransaction({ signature: swapSig, blockhash, lastValidBlockHeight }, "confirmed");
-      setTxs((t) => [...t, { label: "Jupiter swap (FDRY → SOL)", sig: swapSig }]);
+      const ixs = await buildDepositVaultIxs({
+        client,
+        payer: pubkey,
+        vault: vaultPk,
+        vaultAssetMint: vaultAssetMintPk,
+        lpMint: lpMintPk,
+        assetTokenProgram: ASSET_TOKEN_PROGRAM,
+        amountBaseUnits: decimalAmountToBaseUnits(amount, assetDecs),
+      });
 
-      // 2. Symmetry buyVaultTx — use slippage-protected threshold to be safe
-      setStep("signing_buy");
-      const safeSol = Number(quote.otherAmountThreshold);
-      const buyTx = await sdk.buyVaultTx({
-        buyer: pubkey.toBase58(),
-        vault_mint: vaultMint,
-        contributions: [{ mint: WSOL, amount: safeSol }],
-        rebalance_slippage_bps: 150,
-        per_trade_rebalance_slippage_bps: 150,
-      });
-      const buySigs = await sdk.signAndSendTxPayloadBatchSequence({
-        txPayloadBatchSequence: buyTx,
-        wallet: walletForSdk,
-      });
-      buySigs.flat().forEach((s) => setTxs((t) => [...t, { label: "Symmetry buyVault", sig: s }]));
-
-      // 3. Symmetry lockDepositsTx
-      setStep("signing_lock");
-      const lockTx = await sdk.lockDepositsTx({
-        buyer: pubkey.toBase58(),
-        vault_mint: vaultMint,
-      });
-      const lockSigs = await sdk.signAndSendTxPayloadBatchSequence({
-        txPayloadBatchSequence: lockTx,
-        wallet: walletForSdk,
-      });
-      lockSigs.flat().forEach((s) => setTxs((t) => [...t, { label: "Symmetry lockDeposits", sig: s }]));
+      await sendAndConfirm(ixs, "Voltr deposit");
 
       setStep("done_deposit");
+      // Cost-basis tally: asset deposited, shares minted (preview estimate).
+      const navNow = (await fetchNav()) ?? liveNav ?? 1;
+      if (navNow != null) setLiveNav(navNow);
+      const sharesMinted = navNow > 0 ? amt / navNow : amt;
+      recordDeposit(vaultPubkey, pubkey.toBase58(), amt, sharesMinted);
+      onPositionChange?.();
+      await reloadBalances();
     } catch (e) {
       const raw = (e as Error).message || String(e);
       setError(humanizeErr(raw));
@@ -230,38 +265,52 @@ export function DepositWidget({ vaultMint, vaultPubkey: _vaultPubkey, solPriceUs
   };
 
   const withdrawToFdry = async () => {
-    const ph = getPhantom();
-    if (!ph || !pubkey) return;
+    if (!publicKey || !signTransaction || !pubkey) return;
     setError(null); setTxs([]);
 
     const shares = parseFloat(amount || "0");
     if (!shares || shares <= 0) return;
 
-    const walletForSdk = {
-      publicKey: pubkey,
-      signTransaction: ph.signTransaction.bind(ph),
-      signAllTransactions: ph.signAllTransactions.bind(ph),
-    };
+    // Preflight: does the user have any shares to burn? (Book 1: never-deposited UX)
+    try {
+      const userLpAtaCheck = getAssociatedTokenAddressSync(
+        lpMintPk, pubkey, false, TOKEN_PROGRAM_ID,
+      );
+      const bal = await connection.getTokenAccountBalance(userLpAtaCheck);
+      const raw = bal?.value?.amount ? BigInt(bal.value.amount) : 0n;
+      if (raw === 0n) {
+        setError(`You have no ${shareSym} to withdraw. Deposit first.`);
+        setStep("error");
+        return;
+      }
+    } catch {
+      // AccountNotFound → LP ATA doesn't exist yet.
+      setError(`You have no ${shareSym} to withdraw. Deposit first.`);
+      setStep("error");
+      return;
+    }
+
 
     try {
-      setStep("signing_sell");
-      // stFDRY has 6 decimals — withdraw_amount is raw share units
-      const rawShares = Math.floor(shares * 1_000_000);
-      const sellTx = await sdk.sellVaultTx({
-        seller: pubkey.toBase58(),
-        vault_mint: vaultMint,
-        withdraw_amount: rawShares,
-        keep_tokens: [], // swap everything back to SOL/USDC by default
-        rebalance_slippage_bps: 150,
-        per_trade_rebalance_slippage_bps: 150,
+      setStep("building");
+      const ixs = await buildInstantWithdrawVaultIxs({
+        client,
+        payer: pubkey,
+        vault: vaultPk,
+        vaultAssetMint: vaultAssetMintPk,
+        assetTokenProgram: ASSET_TOKEN_PROGRAM,
+        shareAmountBaseUnits: decimalAmountToBaseUnits(amount, assetDecs),
       });
-      setStep("confirming_sell");
-      const sellSigs = await sdk.signAndSendTxPayloadBatchSequence({
-        txPayloadBatchSequence: sellTx,
-        wallet: walletForSdk,
-      });
-      sellSigs.flat().forEach((s) => setTxs((t) => [...t, { label: "Symmetry sellVault", sig: s }]));
+
+      await sendAndConfirm(ixs, `Voltr instant withdraw → ${assetSym}`);
+
       setStep("done_withdraw");
+      const navNow = (await fetchNav()) ?? liveNav ?? 1;
+      if (navNow != null) setLiveNav(navNow);
+      const assetOut = shares * navNow;
+      recordWithdraw(vaultPubkey, pubkey.toBase58(), assetOut, shares);
+      onPositionChange?.();
+      await reloadBalances();
     } catch (e) {
       const raw = (e as Error).message || String(e);
       setError(humanizeErr(raw));
@@ -276,40 +325,37 @@ export function DepositWidget({ vaultMint, vaultPubkey: _vaultPubkey, solPriceUs
   const amtValid = amt > 0;
   const busy = step !== "idle" && step !== "done_deposit" && step !== "done_withdraw" && step !== "error";
 
-  // Preview calculations
-  const solFromQuote = quote ? Number(quote.outAmount) / LAMPORTS_PER_SOL : 0;
-  const usdFromQuote = solFromQuote * solPriceUsd;
-  const estSharesFromDeposit = navPerShareUsd > 0 && usdFromQuote > 0 ? usdFromQuote / navPerShareUsd : 0;
-  const priceImpact = quote ? parseFloat(quote.priceImpactPct || "0") : 0;
+  // Use live NAV if loaded; fall back to prop (for stories/tests) or 1.0.
+  const effNav = liveNav != null ? liveNav : (navPerShareInFdry ?? 1);
+  const estSharesFromDeposit = effNav > 0 ? amt / effNav : 0;
+  const estFdryFromWithdraw = amt * effNav;
 
   const depositBtnLabel =
     !pubkey ? "Connect wallet first"
-      : !amtValid ? "Enter FDRY amount"
-      : !quote ? (quoteErr ? "No Jupiter route" : "Fetching quote…")
-      : step === "building" ? "Building swap…"
-      : step === "signing_swap" ? "Sign swap in Phantom →"
-      : step === "confirming_swap" ? "Confirming swap…"
-      : step === "signing_buy" ? "Sign deposit in Phantom →"
-      : step === "signing_lock" ? "Sign lock in Phantom →"
+      : !amtValid ? `Enter ${assetSym} amount`
+      : step === "building" ? "Preparing deposit…"
+      : step === "signing" ? "Sign in wallet →"
+      : step === "confirming" ? "Confirming…"
       : step === "done_deposit" ? "Deposit submitted ✓"
-      : `Deposit ${amount} FDRY → stFDRY`;
+      : `Deposit ${amount} ${assetSym} → ${shareSym}`;
 
   const withdrawBtnLabel =
     !pubkey ? "Connect wallet first"
-      : !amtValid ? "Enter stFDRY amount"
-      : step === "signing_sell" ? "Sign sell in Phantom →"
-      : step === "confirming_sell" ? "Confirming sell…"
-      : step === "done_withdraw" ? "Sell submitted ✓"
-      : `Withdraw ${amount} stFDRY`;
+      : !amtValid ? `Enter ${shareSym} amount`
+      : step === "building" ? "Preparing withdraw…"
+      : step === "signing" ? "Sign in wallet →"
+      : step === "confirming" ? "Confirming…"
+      : step === "done_withdraw" ? "Withdraw submitted ✓"
+      : `Burn ${amount} ${shareSym} → ${assetSym}`;
 
   return (
     <div className="rounded-3xl border border-line bg-white p-6 md:p-8">
       <div className="flex items-center justify-between mb-5">
         <div>
           <div className="text-xs uppercase tracking-wider text-ember font-medium mb-1">
-            {mode === "deposit" ? "Deposit FDRY" : "Withdraw to FDRY"}
+            {mode === "deposit" ? `Deposit ${assetSym}` : "Instant withdraw"}
           </div>
-          <h3 className="font-display text-xl md:text-2xl font-bold">Join the Genesis vault.</h3>
+          <h3 className="font-display text-xl md:text-2xl font-bold">Stake {assetSym}. Mint {shareSym}.</h3>
         </div>
         {pubkey ? (
           <button
@@ -320,13 +366,7 @@ export function DepositWidget({ vaultMint, vaultPubkey: _vaultPubkey, solPriceUs
             {shortAddr(pubkey)} · disconnect
           </button>
         ) : (
-          <button
-            onClick={connect}
-            className="text-xs px-3 py-1.5 rounded-full bg-molten text-white hover:opacity-95 transition"
-            type="button"
-          >
-            Connect Phantom
-          </button>
+          <WalletMultiButton className="!text-xs !px-3 !py-1.5 !h-auto !rounded-full !bg-molten !text-white hover:!opacity-95 !font-sans !leading-none" />
         )}
       </div>
 
@@ -351,7 +391,7 @@ export function DepositWidget({ vaultMint, vaultPubkey: _vaultPubkey, solPriceUs
         <div className="p-4 rounded-2xl border border-line bg-soft">
           <div className="flex items-baseline justify-between mb-2">
             <label className="text-xs text-muted block">
-              Amount ({mode === "deposit" ? "FDRY" : "stFDRY"})
+              Amount ({mode === "deposit" ? assetSym : shareSym})
             </label>
             {pubkey && (
               <button
@@ -399,51 +439,34 @@ export function DepositWidget({ vaultMint, vaultPubkey: _vaultPubkey, solPriceUs
         {/* Preview */}
         {mode === "deposit" && amtValid && (
           <div className="p-4 rounded-2xl border border-dashed border-line bg-white text-sm">
-            {!quote ? (
-              <div className="text-muted">
-                {quoteErr ? `Jupiter: ${quoteErr}` : "Fetching Jupiter route…"}
+            <div className="space-y-1.5 font-mono text-xs">
+              <Row label={`${amount} ${assetSym} in`} value="direct to vault" />
+              {estSharesFromDeposit > 0 && (
+                <Row label={`→ ≈ ${estSharesFromDeposit.toFixed(4)} ${shareSym}`} value="minted this block" />
+              )}
+              <div className="text-muted text-[11px] leading-relaxed pt-2 mt-2 border-t border-line">
+                Single tx. Your {assetSym} goes directly into the {shareSym} vault. No keeper, no basket.
               </div>
-            ) : (
-              <div className="space-y-1.5 font-mono text-xs">
-                <Row label={`${amount} FDRY`} value="input" />
-                <Row label={`→ ${solFromQuote.toFixed(4)} SOL`} value={`≈ $${usdFromQuote.toFixed(2)}`} />
-                {estSharesFromDeposit > 0 && (
-                  <Row label={`→ ${estSharesFromDeposit.toFixed(4)} stFDRY`} value="minted after keeper settles" />
-                )}
-                <div className="pt-2 mt-2 border-t border-line flex justify-between text-muted">
-                  <span>Jupiter price impact</span>
-                  <span className={priceImpact > 2 ? "text-red-600" : ""}>
-                    {priceImpact.toFixed(2)}%
-                  </span>
-                </div>
-                <div className="flex justify-between text-muted">
-                  <span>Slippage tolerance</span>
-                  <span>1.50%</span>
-                </div>
-              </div>
-            )}
+            </div>
           </div>
         )}
 
         {mode === "withdraw" && amtValid && (
           <div className="p-4 rounded-2xl border border-dashed border-line bg-white text-sm">
             <div className="space-y-1.5 font-mono text-xs">
-              <Row label={`${amount} stFDRY`} value="burn shares" />
-              <Row
-                label={`→ ≈ $${(amt * navPerShareUsd).toFixed(2)} worth of SOL + USDC`}
-                value="paid pro-rata"
-              />
+              <Row label={`Burn ${amount} ${shareSym}`} value="single tx" />
+              <Row label={`→ ≈ ${estFdryFromWithdraw.toFixed(4)} ${assetSym}`} value="paid instantly" />
               <div className="pt-2 mt-2 border-t border-line text-muted leading-relaxed text-[11px]">
-                You'll sign <code className="bg-soft px-1 rounded">sellVaultTx</code>. The keeper settles the basket (~1h during Genesis, ~5 min after), SOL and USDC land in your wallet. To finish at FDRY, swap them on Jupiter after — we link you directly.
+                The vault pays {assetSym} pro-rata instantly. No swap needed.
               </div>
             </div>
           </div>
         )}
 
         {/* SOL gas balance hint */}
-        {pubkey && solBalance !== null && solBalance < 0.01 && (
+        {pubkey && solBalance !== null && solBalance < 0.005 && (
           <div className="p-3 rounded-xl border border-amber-200 bg-amber-50 text-amber-900 text-xs">
-            Your wallet has only {solBalance.toFixed(4)} SOL. You need ~0.01 SOL for gas across the signatures.
+            Your wallet has only {solBalance.toFixed(4)} SOL. You need ~0.005 SOL for gas.
           </div>
         )}
 
@@ -452,7 +475,6 @@ export function DepositWidget({ vaultMint, vaultPubkey: _vaultPubkey, solPriceUs
           onClick={mode === "deposit" ? depositFromFdry : withdrawToFdry}
           disabled={
             !pubkey || !amtValid || busy ||
-            (mode === "deposit" && !quote) ||
             (mode === "deposit" && fdryBalance !== null && amt > fdryBalance) ||
             (mode === "withdraw" && stFdryBalance !== null && amt > stFdryBalance)
           }
@@ -467,8 +489,8 @@ export function DepositWidget({ vaultMint, vaultPubkey: _vaultPubkey, solPriceUs
           <div className="p-4 rounded-2xl border border-emerald-200 bg-emerald-50 text-emerald-900">
             <div className="font-semibold text-sm mb-2">
               {step === "done_deposit"
-                ? "Deposit submitted. stFDRY mints to your wallet after the keeper processes the batch."
-                : "Sell submitted. SOL + USDC will appear in your wallet once the keeper settles."}
+                ? `Deposit confirmed. ${shareSym} is in your wallet.`
+                : `Withdraw confirmed. ${assetSym} is in your wallet.`}
             </div>
             <div className="text-xs space-y-1 font-mono">
               {txs.map((t) => (
@@ -480,16 +502,6 @@ export function DepositWidget({ vaultMint, vaultPubkey: _vaultPubkey, solPriceUs
                 </div>
               ))}
             </div>
-            {step === "done_withdraw" && pubkey && (
-              <a
-                href={`https://jup.ag/swap/SOL-${FDRY_MINT}`}
-                target="_blank"
-                rel="noopener"
-                className="inline-flex items-center gap-1 mt-3 px-3 py-1.5 rounded-lg bg-white border border-emerald-300 text-emerald-900 text-xs font-medium hover:bg-emerald-50"
-              >
-                Swap SOL → FDRY on Jupiter ↗
-              </a>
-            )}
           </div>
         )}
 
@@ -502,9 +514,9 @@ export function DepositWidget({ vaultMint, vaultPubkey: _vaultPubkey, solPriceUs
 
         <p className="text-xs text-muted/80 leading-relaxed">
           {mode === "deposit" ? (
-            <>You sign three txs: <span className="font-mono">Jupiter swap</span> (FDRY → SOL) · <span className="font-mono">Symmetry buy</span> · <span className="font-mono">Symmetry lock</span>. All atomic — if any fails, earlier ones revert cleanly. Operator cannot freeze funds.</>
+            <>You sign one tx: <span className="font-mono">Voltr deposit</span>. {assetSym} in, {shareSym} out — same block.</>
           ) : (
-            <>You sign one tx: <span className="font-mono">Symmetry sell</span>. The vault pays you SOL + USDC pro-rata once the keeper settles. Swap those to FDRY on Jupiter in one click — we deep-link you there.</>
+            <>You sign one tx: <span className="font-mono">Voltr instant withdraw</span>. {shareSym} burns, {assetSym} arrives — same block.</>
           )}
         </p>
       </div>
