@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { UnderdogEquityChart } from "./UnderdogEquityChart";
 
 const API = "https://voltr.getfoundry.app/api/naut";
 
@@ -45,11 +46,30 @@ type Snapshot = {
   error: string | null;
 };
 
+// Sizing: $5k / leg × 2 = $10k pair notional → 1 bp on pair = $1 P&L
+const USD_PER_BP = 1.0;
+
 const fmtBp = (n: number | undefined) =>
-  typeof n === "number" && Number.isFinite(n) ? `${n >= 0 ? "+" : ""}${n.toFixed(1)} bp` : "...";
+  typeof n === "number" && Number.isFinite(n)
+    ? `${n >= 0 ? "+" : ""}${n.toFixed(1)} bp`
+    : "...";
+
+const fmtUsd = (n: number | undefined) => {
+  if (typeof n !== "number" || !Number.isFinite(n)) return "...";
+  const sign = n > 0 ? "+" : n < 0 ? "-" : "";
+  const abs = Math.abs(n);
+  if (abs >= 10_000) return `${sign}$${(abs / 1000).toFixed(1)}k`;
+  if (abs >= 1000) return `${sign}$${(abs / 1000).toFixed(2)}k`;
+  return `${sign}$${abs.toFixed(0)}`;
+};
+
+const fmtBpUsd = (n: number | undefined) =>
+  fmtUsd(typeof n === "number" ? n * USD_PER_BP : undefined);
 
 const fmtPct = (n: number | undefined) =>
-  typeof n === "number" && Number.isFinite(n) ? `${(n * 100).toFixed(1)}%` : "...";
+  typeof n === "number" && Number.isFinite(n)
+    ? `${(n * 100).toFixed(1)}%`
+    : "...";
 
 async function getJson<T>(path: string): Promise<T> {
   const res = await fetch(`${API}${path}`, { cache: "no-store" });
@@ -100,23 +120,34 @@ export function StrategyLivePanel() {
     };
   }, []);
 
-  const openStrategy = Object.entries(snap.positions).filter(([, p]) => p.holding);
+  const openStrategy = Object.entries(snap.positions).filter(
+    ([, p]) => p.holding,
+  );
   const hasBrokerPositions = snap.brokerPositions.length > 0;
 
   return (
     <section className="rounded-3xl border-2 border-ember/30 bg-white p-6 md:p-8 mb-10">
       <div className="flex flex-col md:flex-row md:items-start justify-between gap-4 mb-6">
         <div>
-          <div className="text-xs font-mono text-ember uppercase tracking-wider mb-3">// david live feed</div>
+          <div className="text-xs font-mono text-ember uppercase tracking-wider mb-3">
+            // underdog feed
+          </div>
           <h2 className="font-display text-2xl md:text-3xl font-bold mb-3 lowercase">
-            actual live state, not paper numbers.
+            we bet on underdogs.
           </h2>
           <p className="text-sm md:text-base text-muted leading-relaxed max-w-3xl">
-            This panel reads the live Voltr service directly. Backfilled fires are excluded. If the broker bridge reports no open positions, the page says that instead of pretending capital is deployed.
+            Long the most beaten-down token, short the one the crowd has
+            already crowned. Every closed pair below is a real fire from the
+            live service — backfilled history is excluded so the numbers can
+            only get better by trading well.
           </p>
         </div>
-        <span className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-medium ${snap.health?.ok ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-red-50 text-red-700 border-red-200"}`}>
-          <span className={`w-2 h-2 rounded-full ${snap.health?.ok ? "bg-emerald-500" : "bg-red-500"}`}></span>
+        <span
+          className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full border text-xs font-medium ${snap.health?.ok ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-red-50 text-red-700 border-red-200"}`}
+        >
+          <span
+            className={`w-2 h-2 rounded-full ${snap.health?.ok ? "bg-emerald-500" : "bg-red-500"}`}
+          ></span>
           {snap.health?.ok ? "service live" : "service unavailable"}
         </span>
       </div>
@@ -127,32 +158,78 @@ export function StrategyLivePanel() {
         </div>
       )}
 
+      <UnderdogEquityChart />
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        <LiveStat label="closed live fires" value={snap.stats ? String(snap.stats.n_resolved) : "..."} sub="backfill excluded" />
-        <LiveStat label="live net" value={fmtBp(snap.stats?.total_bp)} sub={`hit ${fmtPct(snap.stats?.hit_rate)}`} />
-        <LiveStat label="profit factor" value={snap.stats ? `${snap.stats.profit_factor.toFixed(2)}x` : "..."} sub="live only" />
-        <LiveStat label="broker positions" value={String(snap.brokerPositions.length)} sub={hasBrokerPositions ? "bridge reports open risk" : "no open broker risk"} />
+        <LiveStat
+          label="closed live fires"
+          value={snap.stats ? String(snap.stats.n_resolved) : "..."}
+          sub="backfill excluded"
+        />
+        <LiveStat
+          label="live $ p&l"
+          value={fmtBpUsd(snap.stats?.total_bp)}
+          sub={`${fmtBp(snap.stats?.total_bp)} · hit ${fmtPct(snap.stats?.hit_rate)}`}
+        />
+        <LiveStat
+          label="profit factor"
+          value={
+            typeof snap.stats?.profit_factor === "number"
+              ? `${snap.stats.profit_factor.toFixed(2)}x`
+              : "..."
+          }
+          sub="live only"
+        />
+        <LiveStat
+          label="broker positions"
+          value={String(snap.brokerPositions.length)}
+          sub={
+            hasBrokerPositions
+              ? "bridge reports open risk"
+              : "no open broker risk"
+          }
+        />
       </div>
 
       <div className="grid lg:grid-cols-2 gap-5">
         <div className="rounded-2xl border border-line bg-soft p-5">
-          <h3 className="font-display font-semibold mb-3 lowercase">current strategy state</h3>
+          <h3 className="font-display font-semibold mb-3 lowercase">
+            current strategy state
+          </h3>
           {openStrategy.length === 0 ? (
-            <p className="text-sm text-muted font-mono">no strategy position reported right now.</p>
+            <p className="text-sm text-muted font-mono">
+              no strategy position reported right now.
+            </p>
           ) : (
             <div className="space-y-3">
               {openStrategy.map(([leg, p]) => (
-                <div key={leg} className="rounded-xl border border-line bg-white p-4 text-sm">
+                <div
+                  key={leg}
+                  className="rounded-xl border border-line bg-white p-4 text-sm"
+                >
                   <div className="flex items-center justify-between mb-2">
                     <span className="font-mono text-xs text-muted">{leg}</span>
-                    <span className={(p.mark_pnl_bp ?? 0) >= 0 ? "text-emerald-700" : "text-red-700"}>
-                      {fmtBp(p.mark_pnl_bp)}
-                    </span>
+                    <div className="text-right">
+                      <div
+                        className={
+                          (p.mark_pnl_bp ?? 0) >= 0
+                            ? "text-emerald-700"
+                            : "text-red-700"
+                        }
+                      >
+                        {fmtBpUsd(p.mark_pnl_bp)}
+                      </div>
+                      <div className="text-[10px] text-muted">
+                        {fmtBp(p.mark_pnl_bp)}
+                      </div>
+                    </div>
                   </div>
                   <div className="font-mono">
                     long {p.long ?? "..."} / short {p.short ?? "..."}
                   </div>
-                  <div className="text-xs text-muted mt-1">bars remaining: {p.bars_remaining ?? "..."}</div>
+                  <div className="text-xs text-muted mt-1">
+                    bars remaining: {p.bars_remaining ?? "..."}
+                  </div>
                 </div>
               ))}
             </div>
@@ -160,33 +237,63 @@ export function StrategyLivePanel() {
         </div>
 
         <div className="rounded-2xl border border-line bg-soft p-5">
-          <h3 className="font-display font-semibold mb-3 lowercase">recent live closes</h3>
+          <h3 className="font-display font-semibold mb-3 lowercase">
+            recent live closes
+          </h3>
           {snap.fires.length === 0 ? (
             <p className="text-sm text-muted font-mono">no live closes yet.</p>
           ) : (
             <div className="space-y-2">
-              {snap.fires.slice(-4).reverse().map((f, i) => (
-                <div key={`${f.t}-${i}`} className="flex items-center justify-between gap-3 rounded-xl bg-white border border-line p-3 text-xs font-mono">
-                  <span className="min-w-0 truncate">{f.tf ?? "?"}: {f.long ?? "..."} / {f.short ?? "..."}</span>
-                  <span className={(f.pair_bp_net ?? 0) >= 0 ? "text-emerald-700" : "text-red-700"}>{fmtBp(f.pair_bp_net)}</span>
-                </div>
-              ))}
+              {snap.fires
+                .slice(-4)
+                .reverse()
+                .map((f, i) => (
+                  <div
+                    key={`${f.t}-${i}`}
+                    className="flex items-center justify-between gap-3 rounded-xl bg-white border border-line p-3 text-xs font-mono"
+                  >
+                    <span className="min-w-0 truncate">
+                      {f.tf ?? "?"}: {f.long ?? "..."} / {f.short ?? "..."}
+                    </span>
+                    <span
+                      className={
+                        (f.pair_bp_net ?? 0) >= 0
+                          ? "text-emerald-700"
+                          : "text-red-700"
+                      }
+                    >
+                      {fmtBpUsd(f.pair_bp_net)}
+                    </span>
+                  </div>
+                ))}
             </div>
           )}
         </div>
       </div>
 
       <p className="text-xs text-muted mt-5 font-mono lowercase">
-        // source: voltr.getfoundry.app/api/naut. this is service state and live-only closed-fire accounting. vault capital still remains auditable on-chain above.
+        // sizing: $100k bankroll · $5k/leg · $10k pair notional · 1 bp = $1.
+        src: voltr.getfoundry.app/api/naut · live-only fires, backfill
+        excluded.
       </p>
     </section>
   );
 }
 
-function LiveStat({ label, value, sub }: { label: string; value: string; sub: string }) {
+function LiveStat({
+  label,
+  value,
+  sub,
+}: {
+  label: string;
+  value: string;
+  sub: string;
+}) {
   return (
     <div className="p-4 rounded-2xl border border-line bg-soft">
-      <div className="text-[10px] uppercase tracking-wider text-muted mb-1">{label}</div>
+      <div className="text-[10px] uppercase tracking-wider text-muted mb-1">
+        {label}
+      </div>
       <div className="font-display text-xl font-bold tabular-nums">{value}</div>
       <div className="text-[10px] text-muted mt-1">{sub}</div>
     </div>

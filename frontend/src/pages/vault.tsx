@@ -5,6 +5,8 @@ import { useVaultInfo } from "../hooks/useVaultInfo";
 import { DepositWidget } from "../components/DepositWidget";
 import { PortfolioPanel } from "../components/PortfolioPanel";
 import { StrategyLivePanel } from "../components/StrategyLivePanel";
+import { VaultStrategyPanel } from "../components/VaultStrategyPanel";
+import { VaultExplainerCard } from "../components/VaultExplainerCard";
 import NavChart from "../components/NavChart";
 import {
   findVaultEntry,
@@ -235,6 +237,10 @@ export default function VaultPage() {
             </p>
           </div>
         </section>
+
+        <VaultExplainerCard />
+
+        <VaultStrategyPanel />
 
         <StrategyLivePanel />
 
