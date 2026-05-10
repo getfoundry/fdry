@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>fdry performance — v0.4.1 vol-target walk-forward</title>
+<style>
+body { font-family: -apple-system, BlinkMacSystemFont, sans-serif;
+        max-width: 960px; margin: 2em auto; padding: 0 1em; color: #222; }
+h1 { margin-bottom: 0; }
+.sub { color: #666; margin-top: 0.2em; }
+.headline { background: #f4f4f4; padding: 1em; border-radius: 8px;
+             display: grid; grid-template-columns: repeat(4, 1fr); gap: 1em;
+             margin: 1em 0; }
+.headline div { text-align: center; }
+.headline .label { font-size: 0.75em; color: #888; text-transform: uppercase; }
+.headline .val { font-size: 1.6em; font-weight: 600; }
+table { border-collapse: collapse; width: 100%; margin-top: 1em; }
+th, td { padding: 0.5em; border-bottom: 1px solid #e0e0e0; text-align: right; }
+th { background: #fafafa; font-weight: 600; font-size: 0.85em; }
+td:first-child, th:first-child { text-align: left; }
+.shipped { color: #1abc9c; }
+.footer { margin-top: 3em; font-size: 0.8em; color: #888; }
+.chart-fallback { padding: 1em; background: #fafafa; border: 1px dashed #ccc;
+                    text-align: center; color: #888; }
+</style>
+</head>
+<body>
+<h1>fdry — quant alpha vault performance</h1>
+<p class="sub">Shipped: <code class="shipped">v04_tv0.0050</code> (v0.4.1 vol-target walk-forward refit) · <span style='color:#888'>updated 2026-04-20T14:15:51+00:00 · backtest 97d · live 0d</span></p>
+
+<div class="headline">
+  <div><div class="label">Sharpe</div><div class="val">+1.212</div></div>
+  <div><div class="label">Max DD</div><div class="val">-9.98%</div></div>
+  <div><div class="label">Terminal</div><div class="val">$1.096</div></div>
+  <div><div class="label">Days (bt / live)</div><div class="val">97 / 0</div></div>
+</div>
+
+<h2>Backtest equity curve by variant</h2>
+<div id="chartWrap"><canvas id="equityChart" height="120"></canvas></div>
+<noscript><div class="chart-fallback">JavaScript disabled — table below shows the metrics.</div></noscript>
+
+<h2>Sharpe per epoch per variant</h2>
+<table>
+<thead><tr><th>Variant</th><th>Q1<br>2024-05-04<br>→2024-06-07</th><th>Q2<br>2024-06-08<br>→2024-07-07</th><th>Q3<br>2024-07-08<br>→2024-08-01</th><th>Q4<br>2024-08-02<br>→2024-09-05</th><th>Overall</th></tr></thead>
+<tbody>
+<tr><td><b>EW</b></td><td>+2.156</td><td>+0.434</td><td>+2.388</td><td>-0.304</td><td><b>+1.033</b></td></tr>
+<tr><td><b>v04_tv0.0050</b> ★</td><td>+2.413</td><td>+0.795</td><td>+2.196</td><td>-0.127</td><td><b>+1.212</b></td></tr>
+<tr><td><b>v04_tv0.0075</b></td><td>+2.402</td><td>+0.648</td><td>+2.241</td><td>-0.134</td><td><b>+1.175</b></td></tr>
+<tr><td><b>v04_tv0.0100</b></td><td>+2.376</td><td>+0.573</td><td>+2.265</td><td>-0.136</td><td><b>+1.154</b></td></tr>
+<tr><td><b>v04_tv0.0150</b></td><td>+2.299</td><td>+0.494</td><td>+2.290</td><td>-0.136</td><td><b>+1.124</b></td></tr>
+<tr><td><b>v04_tv0.0200</b></td><td>+2.244</td><td>+0.456</td><td>+2.302</td><td>-0.136</td><td><b>+1.105</b></td></tr>
+
+</tbody>
+</table>
+
+<p class="footer">
+  Backtest source: unify/runs/v8/v04_walkforward/verdict.json (97-day walk-forward,
+  k-fold gate accepted 3/5 folds, text_drift on mega joint corpus).
+  Live source: fdry/runs/daily_signal/aum_log.jsonl (populated daily by aum_tracker.py).
+  Tier discipline: v0.4.1 params frozen for 30 days per Matt 4 verdict.
+</p>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"
+        onerror="document.getElementById('chartWrap').innerHTML='<div class=chart-fallback>Chart CDN unavailable — table above is authoritative.</div>'"></script>
+<script>
+try {
+  const labels = ["start", "Q1 (2024-06-07)", "Q2 (2024-07-07)", "Q3 (2024-08-01)", "Q4 (2024-09-05)"];
+  const datasets = [{"label": "EW", "data": [1.0, 1.098400118504115, 1.0782176338639673, 1.247538589799659, 1.1526394435478797], "borderColor": "#888888", "backgroundColor": "#88888833", "borderWidth": 2, "tension": 0.2}, {"label": "v04_tv0.0050 \u2190 shipped", "data": [1.0, 1.0423844962538757, 1.058362458875707, 1.1028776811136642, 1.0956149196496465], "borderColor": "#1abc9c", "backgroundColor": "#1abc9c33", "borderWidth": 4, "tension": 0.2}, {"label": "v04_tv0.0075", "data": [1.0, 1.0504516267859278, 1.0638704813096065, 1.119421011116042, 1.1090789111789694], "borderColor": "#3498db", "backgroundColor": "#3498db33", "borderWidth": 2, "tension": 0.2}, {"label": "v04_tv0.0100", "data": [1.0, 1.0569726450171433, 1.0683592536741835, 1.1329452410224996, 1.1197037980121751], "borderColor": "#9b59b6", "backgroundColor": "#9b59b633", "borderWidth": 2, "tension": 0.2}, {"label": "v04_tv0.0150", "data": [1.0, 1.0665058431346683, 1.0741771798814748, 1.153330947779386, 1.1345968375229383], "borderColor": "#e67e22", "backgroundColor": "#e67e2233", "borderWidth": 2, "tension": 0.2}, {"label": "v04_tv0.0200", "data": [1.0, 1.073824084120656, 1.0780323474728821, 1.1689246151670851, 1.1448390883985577], "borderColor": "#e74c3c", "backgroundColor": "#e74c3c33", "borderWidth": 2, "tension": 0.2}];
+  if (typeof Chart !== 'undefined') {
+    new Chart(document.getElementById('equityChart'), {
+      type: 'line',
+      data: { labels, datasets },
+      options: {
+        responsive: true,
+        scales: { y: { title: { display: true, text: 'Cumulative equity ($1 → x)' } } },
+        plugins: { legend: { position: 'bottom' } },
+      },
+    });
+  } else {
+    document.getElementById('chartWrap').innerHTML = '<div class=chart-fallback>Chart library missing — see table above.</div>';
+  }
+} catch (e) {
+  document.getElementById('chartWrap').innerHTML = '<div class=chart-fallback>Chart error: '+e.message+'</div>';
+}
+</script>
+</body>
+</html>

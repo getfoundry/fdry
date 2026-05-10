@@ -1,0 +1,21 @@
+[package]
+name = "fdry-jup-adaptor"
+version = "0.1.0"
+edition = "2021"
+description = "Voltr adaptor for Jupiter swaps without Pyth oracle verification. For assets without sponsored Pyth Pull v2 price accounts (xStocks, longtail)."
+
+[lib]
+crate-type = ["cdylib", "lib"]
+name = "fdry_jup_adaptor"
+
+[features]
+default = []
+
+[dependencies]
+pinocchio = "0.9.2"
+pinocchio-log = "0.5.1"
+pinocchio-system = "0.3.0"
+pinocchio-token = "0.4.0"
+pinocchio-associated-token-account = "0.2.0"
+pinocchio-pubkey = "0.3.0"
+thiserror = { version = "1.0", default-features = false }

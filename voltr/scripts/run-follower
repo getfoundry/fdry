@@ -1,0 +1,84 @@
+#!/usr/bin/env bash
+# fdry follower wrapper — resolves pnpm at runtime so launchd plists stay portable.
+# Day-2 firmament: committed orchestration files MAY NOT hardcode interpreter paths.
+set -euo pipefail
+
+usage() {
+  echo "usage: run-follower <follower:dry|follower:resolve|follower:smoke>" >&2
+  exit 64
+}
+
+if [[ $# -ne 1 ]]; then
+  usage
+fi
+
+case "$1" in
+  follower:dry|follower:resolve|follower:smoke) ;;
+  *) usage ;;
+esac
+
+SCRIPT_NAME="$1"
+
+# Source operator env (gitignored, holds JUP_PREDICTION_API_KEY and optional FDRY_PNPM).
+if [[ -f "$HOME/.fdry/env" ]]; then
+  set -a
+  # shellcheck disable=SC1091
+  source "$HOME/.fdry/env"
+  set +a
+fi
+
+# cd into the voltr workspace so pnpm picks up the right package.json.
+cd ~/Projects/fdry/voltr
+
+# Resolution chain.
+PNPM=""
+
+# (a) explicit override
+if [[ -n "${FDRY_PNPM:-}" && -x "${FDRY_PNPM}" ]]; then
+  PNPM="$FDRY_PNPM"
+fi
+
+# (c) command -v with extended PATH
+if [[ -z "$PNPM" ]]; then
+  EXT_PATH="$PATH:$HOME/.bun/bin:/opt/homebrew/bin:/usr/local/bin"
+  if found=$(PATH="$EXT_PATH" command -v pnpm 2>/dev/null); then
+    if [[ -n "$found" && -x "$found" ]]; then
+      PNPM="$found"
+    fi
+  fi
+fi
+
+# (d) hard probe list
+if [[ -z "$PNPM" ]]; then
+  for candidate in "$HOME/.bun/bin/pnpm" "/opt/homebrew/bin/pnpm" "/usr/local/bin/pnpm"; do
+    if [[ -x "$candidate" ]]; then
+      PNPM="$candidate"
+      break
+    fi
+  done
+fi
+
+# (e) fail loud
+if [[ -z "$PNPM" ]]; then
+  echo "[run-follower] could not resolve pnpm; set FDRY_PNPM=/abs/path/to/pnpm in ~/.fdry/env" >&2
+  exit 127
+fi
+echo "[run-follower] pnpm=$PNPM" >&2
+
+# Sanity check: confirm $PNPM actually behaves like pnpm before exec.
+# Day-5 adversarial probe caught: a corrupt FDRY_PNPM=/bin/echo would silently
+# exit 0 with no follower work — launchd telemetry shows "ran successfully"
+# while nothing happened. The cheapest guard is a `--version` shape check.
+# pnpm prints a semver line like "10.5.2"; echo, cat, false, true, /bin/sh
+# all fail this regex.
+if ! version_out=$("$PNPM" --version 2>/dev/null) || \
+   ! echo "$version_out" | head -1 | grep -Eq '^[0-9]+\.[0-9]+(\.[0-9]+)?'; then
+  echo "[run-follower] FDRY_PNPM=$PNPM does not return a pnpm-shaped --version (got: ${version_out:-<empty>}). Set FDRY_PNPM=/abs/path/to/real/pnpm in ~/.fdry/env." >&2
+  exit 126
+fi
+# launchd subprocesses inherit a minimal PATH; pnpm + tsx need to find `node`,
+# and tsx's #!/usr/bin/env node shebang fails without it.
+PNPM_DIR="$(dirname "$PNPM")"
+export PATH="$PNPM_DIR:$HOME/.bun/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
+
+exec "$PNPM" "$SCRIPT_NAME"

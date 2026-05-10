@@ -1,0 +1,33 @@
+{
+  "name": "@fdry/voltr",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "src/main.ts",
+  "scripts": {
+    "dev": "tsx watch src/main.ts",
+    "start": "tsx src/main.ts",
+    "dry": "tsx src/main.ts --dry-run",
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "follower": "../scripts/with-secrets tsx src/follower/cli.ts",
+    "follower:dry": "../scripts/with-secrets tsx src/follower/cli.ts --dry-run",
+    "follower:smoke": "../scripts/with-secrets tsx src/follower/cli.ts --dry-run --once",
+    "follower:resolve": "../scripts/with-secrets tsx src/follower/paperResolver.ts"
+  },
+  "dependencies": {
+    "@voltr/vault-sdk": "^0.1.0",
+    "@solana/web3.js": "^1.95.0",
+    "@coral-xyz/anchor": "^0.30.1",
+    "zod": "^3.23.8",
+    "bn.js": "^5.2.1",
+    "tsx": "^4.19.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0",
+    "@types/node": "^22.7.0",
+    "@types/bn.js": "^5.1.5",
+    "vitest": "^2.1.0"
+  }
+}

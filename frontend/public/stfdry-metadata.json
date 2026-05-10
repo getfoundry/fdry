@@ -1,0 +1,14 @@
+{
+  "name": "Staked FDRY",
+  "symbol": "stFDRY",
+  "description": "Claim on the Foundry FDRY staking vault on Solana. 1 stFDRY = 1 FDRY at launch; NAV rises as product revenue buys back and deposits FDRY. Chain-level FDRY-only ingress via Voltr. Forging the tools to compete with giants.",
+  "image": "https://getfoundry.app/stfdry.png",
+  "external_url": "https://getfoundry.app",
+  "attributes": [
+    { "trait_type": "Vault", "value": "Bpr49sQXsxwNXNMRWS2v3tTBGWu2QgZtdA83BX77xBX1" },
+    { "trait_type": "Asset", "value": "FDRY" },
+    { "trait_type": "Protocol", "value": "Voltr (Ranger)" },
+    { "trait_type": "Ingress", "value": "FDRY-only (chain-enforced)" },
+    { "trait_type": "Strategy", "value": "Pure custody — no rebalancing, no adaptors" }
+  ]
+}

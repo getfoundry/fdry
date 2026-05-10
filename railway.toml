@@ -1,0 +1,19 @@
+# ============================================================================
+# Railway deployment config — fdry
+# ----------------------------------------------------------------------------
+# Secrets injected via Railway's environment variables UI.
+# See .env.example for the full variable list.
+# ============================================================================
+
+[build]
+builder = "NIXPACKS"
+buildCommand = "pnpm install && pnpm build"
+
+# ----------------------------------------------------------------------------
+# Cron jobs — TBD after voltr scalp bot ships.
+# Symmetry bot cron removed 2026-04-22.
+# ----------------------------------------------------------------------------
+
+[deploy]
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 3

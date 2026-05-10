@@ -1,0 +1,23 @@
+{
+  "name": "fdry",
+  "version": "0.1.0",
+  "private": true,
+  "description": "fdry monorepo — Ranger/Voltr FDRY vault + frontend + shared",
+  "type": "module",
+  "packageManager": "pnpm@9.0.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "pnpm -r run build",
+    "test": "pnpm -r run test",
+    "dev:frontend": "pnpm --filter frontend run dev",
+    "voltr:dev": "pnpm --filter voltr run dev"
+  },
+  "devDependencies": {
+    "typescript": "^5.5.0",
+    "tsx": "^4.19.0",
+    "vitest": "^2.1.0",
+    "@types/node": "^22.7.0"
+  }
+}

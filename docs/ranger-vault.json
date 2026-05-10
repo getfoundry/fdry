@@ -1,0 +1,34 @@
+{
+  "vault": "Bpr49sQXsxwNXNMRWS2v3tTBGWu2QgZtdA83BX77xBX1",
+  "lpMint_pda": "G8e9i9RADPsxJtiCJsGC4tSx2kgCkGbEkdn7aajt2nqW",
+  "assetIdleAuth_pda": "9BSnA4xVqHkDVxEKCEMUh8FTVNE8JMCKTDmzLQLUYWbr",
+  "asset": "2ZiSPGncrkwWa6GBZB4EDtsfq7HEWwkwsPFzEXieXjNL",
+  "admin": "HotWalletXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+  "manager": "HotWalletXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+  "signature": "5amU3Y3y5cnQ1uqECqEPi9DjKrefXBRNudH5Smn71bBtXfxSTbN5N3Rof9sDE8zJRnaspbbCuXqfwiVEML21oQnG",
+  "createdAt": "2026-04-20T07:09:30.634Z",
+  "seeds": [
+    {
+      "signature": "5w72toKTYcKnffxb4sUsw5DaGyMn4Ywo24w6UPn5ZYx5YbNJfo4si9tsKDz1wCJdifmzTWGnZZDV2zQexwdRaG4S",
+      "amount_whole": "100",
+      "amount_base": "100000000000",
+      "at": "2026-04-20T07:14:30.226Z"
+    }
+  ],
+  "lpMetadata": {
+    "pda": "FfJ9WFVWd6agJ2xbbRrqjA6H7NRjvShbbSWx2bSbD3Rm",
+    "signature": "4DVVn7pQWk1Qvr8kximtGXTikHPCbgi2NLazvS7ND9fLEJXaZ3X46STUMnRKZHa6Z6c1iRT7yhHEXB3ctZEQfKeS",
+    "name": "Staked FDRY",
+    "symbol": "stFDRY",
+    "uri": "https://getfoundry.app/stfdry-metadata.json",
+    "at": "2026-04-20T08:25:57.774Z"
+  },
+  "maxCapUpdates": [
+    {
+      "signature": "4iFf1GWa1YHCUyP3Mt1aZE7ryTttJQq3cNaNDixtQbeKjWPPfxhgJmJZMoWKECdxqWN5QahK6wKUXo8WFM66jJam",
+      "oldMaxCap": "1000000000000000",
+      "newMaxCap": "1000000000000000000",
+      "at": "2026-04-20T08:52:40.123Z"
+    }
+  ]
+}

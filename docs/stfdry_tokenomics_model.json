@@ -1,0 +1,171 @@
+{
+  "inputs": {
+    "fdry_price_usd": 0.0003,
+    "fdry_total_supply": 1000000000,
+    "market_cap_usd": 300000.0,
+    "pool_liquidity_usd": 80000,
+    "pool_fdry_tokens": 134000000,
+    "pool_sol": 465,
+    "sol_price_usd": 86.02,
+    "seed_usd_target": 40000,
+    "seed_fdry_tokens": 133333333
+  },
+  "mechanisms": {
+    "M1": {
+      "mechanism": "swap-seed (dump FDRY into pool for SOL)",
+      "seed_fdry_tokens": 133333333,
+      "new_fdry_reserve": 267333333,
+      "new_sol_reserve": 233.08,
+      "sol_received": 231.92,
+      "new_fdry_price_usd": 7.5e-05,
+      "price_impact_pct": 75.0,
+      "vault_value_usd_post_seed": 19950.12,
+      "slippage_loss_vs_40k": 20049.88,
+      "vault_composition": "pure SOL"
+    },
+    "M2": {
+      "mechanism": "direct-seed (FDRY sits in vault)",
+      "seed_fdry_tokens": 133333333,
+      "circulating_before": 1000000000,
+      "circulating_after": 866666667,
+      "circulating_reduction_pct": 13.33,
+      "vault_notional_usd": 40000.0,
+      "realizable_usd_if_exited": 19950.12,
+      "supply_demand_effect": "13.3% of total supply removed from sell-side pressure; thin pool means 1:1 price support unclear"
+    },
+    "M3": {
+      "mechanism": "lock-seed (FDRY locked, non-transferable stFDRY issued)",
+      "seed_fdry_tokens": 133333333,
+      "circulating_after": 866666667,
+      "circulating_reduction_pct": 13.33,
+      "vault_notional_usd": 40000.0,
+      "lockup_days": 90,
+      "transferability": "none in strict variant; soft-transferable in loose variant",
+      "supply_demand_effect": "same 13.3% circulating reduction as M2 + commitment signal (harder to rug, stronger floor)"
+    }
+  },
+  "projections_90d": {
+    "S1_10k_mo_50pct_route": {
+      "revenue_to_vault_90d_usd": 15000.0,
+      "fdry_trajectories": {
+        "bear": {
+          "fdry_price_end_usd": 0.00015,
+          "M1_stFDRY_value_usd": 34950.12,
+          "M2_stFDRY_value_usd": 35000.0,
+          "M3_stFDRY_value_usd": 31500.0,
+          "FDRY_HODL_baseline_usd": 20000.0
+        },
+        "flat": {
+          "fdry_price_end_usd": 0.0003,
+          "M1_stFDRY_value_usd": 34950.12,
+          "M2_stFDRY_value_usd": 55000.0,
+          "M3_stFDRY_value_usd": 49500.0,
+          "FDRY_HODL_baseline_usd": 40000.0
+        },
+        "bull": {
+          "fdry_price_end_usd": 0.0006,
+          "M1_stFDRY_value_usd": 34950.12,
+          "M2_stFDRY_value_usd": 95000.0,
+          "M3_stFDRY_value_usd": 85500.0,
+          "FDRY_HODL_baseline_usd": 80000.0
+        }
+      }
+    },
+    "S2_zero_revenue": {
+      "revenue_to_vault_90d_usd": 0.0,
+      "fdry_trajectories": {
+        "bear": {
+          "fdry_price_end_usd": 0.00015,
+          "M1_stFDRY_value_usd": 19950.12,
+          "M2_stFDRY_value_usd": 20000.0,
+          "M3_stFDRY_value_usd": 18000.0,
+          "FDRY_HODL_baseline_usd": 20000.0
+        },
+        "flat": {
+          "fdry_price_end_usd": 0.0003,
+          "M1_stFDRY_value_usd": 19950.12,
+          "M2_stFDRY_value_usd": 40000.0,
+          "M3_stFDRY_value_usd": 36000.0,
+          "FDRY_HODL_baseline_usd": 40000.0
+        },
+        "bull": {
+          "fdry_price_end_usd": 0.0006,
+          "M1_stFDRY_value_usd": 19950.12,
+          "M2_stFDRY_value_usd": 80000.0,
+          "M3_stFDRY_value_usd": 72000.0,
+          "FDRY_HODL_baseline_usd": 80000.0
+        }
+      }
+    },
+    "S3_100k_mo_bull": {
+      "revenue_to_vault_90d_usd": 150000.0,
+      "fdry_trajectories": {
+        "bear": {
+          "fdry_price_end_usd": 0.00015,
+          "M1_stFDRY_value_usd": 169950.12,
+          "M2_stFDRY_value_usd": 170000.0,
+          "M3_stFDRY_value_usd": 153000.0,
+          "FDRY_HODL_baseline_usd": 20000.0
+        },
+        "flat": {
+          "fdry_price_end_usd": 0.0003,
+          "M1_stFDRY_value_usd": 169950.12,
+          "M2_stFDRY_value_usd": 190000.0,
+          "M3_stFDRY_value_usd": 171000.0,
+          "FDRY_HODL_baseline_usd": 40000.0
+        },
+        "bull": {
+          "fdry_price_end_usd": 0.0006,
+          "M1_stFDRY_value_usd": 169950.12,
+          "M2_stFDRY_value_usd": 230000.0,
+          "M3_stFDRY_value_usd": 207000.0,
+          "FDRY_HODL_baseline_usd": 80000.0
+        }
+      }
+    }
+  },
+  "hypotheses": {
+    "H1": {
+      "claim": "M1 stFDRY value at 90d is independent of FDRY price (tracks SOL + revenue)",
+      "verdict": "CONFIRMED",
+      "evidence_S1_by_trajectory": {
+        "bear": 34950.12,
+        "flat": 34950.12,
+        "bull": 34950.12
+      },
+      "note": "all three identical since vault is pure SOL; only revenue-to-vault influences"
+    },
+    "H2": {
+      "claim": "M2/M3 stFDRY value tracks FDRY price plus revenue premium",
+      "verdict": "CONFIRMED",
+      "evidence": {
+        "M2_bear_vs_bull_spread_usd": 60000.0,
+        "revenue_premium_over_hodl_S1_flat": 15000.0
+      }
+    },
+    "H3": {
+      "claim": "Under S2 ($0 revenue), stFDRY in M2/M3 underperforms FDRY-HODL due to lockup friction",
+      "verdict": {
+        "M2_vs_HODL": "EQUIVALENT notional (no lockup discount modeled for M2)",
+        "M3_vs_HODL": "CONFIRMED underperforms by 10% illiquidity haircut"
+      },
+      "evidence_S2_flat": {
+        "M2": 40000.0,
+        "M3": 36000.0,
+        "HODL": 40000.0,
+        "M3_shortfall_usd": 4000.0
+      }
+    }
+  },
+  "key_numeric_findings": {
+    "M1_slippage_cost_usd": 20049.88,
+    "M1_price_impact_pct": 75.0,
+    "M1_vault_value_post_seed_usd": 19950.12,
+    "M2_M3_circulating_supply_removed_pct": 13.33,
+    "S1_M1_90d_value_usd": 34950.12,
+    "S1_M2_flat_90d_value_usd": 55000.0,
+    "S1_M3_flat_90d_value_usd": 49500.0,
+    "S3_M1_90d_value_usd": 169950.12,
+    "S3_M2_bull_90d_value_usd": 230000.0
+  }
+}

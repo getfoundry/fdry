@@ -1,0 +1,82 @@
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800&family=Geist+Mono:wght@400;500;600;700&family=Sora:wght@500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body {
+  background: #FFFFFF;
+  color: #0B0B0C;
+  font-family: 'Geist', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* { box-sizing: border-box; }
+
+.font-display { font-family: 'Sora', 'Geist', sans-serif; letter-spacing: 0; }
+
+.molten-text {
+  color: #e65f00;
+}
+
+.molten-ring {
+  background: linear-gradient(135deg, #FF6F00 0%, #FF8A00 100%);
+  padding: 4px;
+  border-radius: 3rem;
+}
+
+.spark {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  background: #FF6F00;
+  border-radius: 9999px;
+  opacity: 0;
+  animation: spark-rise 2.4s ease-out infinite;
+}
+
+@keyframes spark-rise {
+  0% { transform: translateY(0); opacity: 0; }
+  20% { opacity: 0.9; }
+  100% { transform: translateY(-80px); opacity: 0; }
+}
+
+.live-dot {
+  position: relative;
+  width: 8px; height: 8px;
+  border-radius: 9999px;
+  background: #FF6F00;
+}
+.live-dot::before {
+  content: "";
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  background: #FF6F00;
+  opacity: 0.5;
+  animation: ping 1.8s cubic-bezier(0,0,0.2,1) infinite;
+}
+@keyframes ping { 75%,100% { transform: scale(2.4); opacity: 0; } }
+
+.fdry-wallet-scope .wallet-adapter-button {
+  width: 100% !important;
+  min-height: 44px !important;
+  justify-content: center !important;
+  border-radius: 0.75rem !important;
+  background: linear-gradient(135deg, #FF6F00 0%, #FF8A00 100%) !important;
+  color: #fff8f0 !important;
+  font-family: 'Geist', sans-serif !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  box-shadow: 0 14px 30px rgba(255, 111, 0, 0.18) !important;
+}
+
+.fdry-wallet-scope .wallet-adapter-button:not([disabled]):hover {
+  background: #0B0B0C !important;
+}
+
+@media (min-width: 640px) {
+  .fdry-wallet-scope .wallet-adapter-button {
+    width: auto !important;
+  }
+}

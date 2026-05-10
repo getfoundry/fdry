@@ -1,0 +1,58 @@
+{
+  "_meta": {
+    "generated_by": "L3 Agent 3b - Land/Produced (PEPE replacement)",
+    "date": "2026-04-20",
+    "source": "Pyth Hermes API (https://hermes.pyth.network/v2/price_feeds)",
+    "universe": ["SOL", "WIF", "BONK", "POPCAT", "FLOKI", "JTO"],
+    "coverage": "6/6",
+    "change_log": [
+      {
+        "date": "2026-04-20",
+        "agent": "Cycle 2 L3 Agent 3b",
+        "change": "Replaced PEPE (Ethereum-native, no liquid Solana pool) with FARTCOIN (Solana-native, $7.59M TVL, 0.05% price impact at $1k notional)",
+        "memo": "docs/pepe_replacement.md"
+      },
+      {
+        "date": "2026-04-20",
+        "agent": "C6 L3 Agent 3a",
+        "change": "Removed DOGE entry; 6-token universe [SOL, WIF, BONK, POPCAT, FLOKI, JTO] aligned with createVault.ts"
+      }
+    ]
+  },
+  "SOL": {
+    "pyth_id": "0xef0d8b6fda2ceba41da15d4095d1da392a0d2f8ed0c6c7bc0f4cfac8c280b56d",
+    "source": "pyth",
+    "symbol": "Crypto.SOL/USD",
+    "description": "SOLANA / US DOLLAR"
+  },
+  "WIF": {
+    "pyth_id": "0x4ca4beeca86f0d164160323817a4e42b10010a724c2217c6ee41b54cd4cc61fc",
+    "source": "pyth",
+    "symbol": "Crypto.WIF/USD",
+    "description": "DOG WIF HAT / US DOLLAR"
+  },
+  "BONK": {
+    "pyth_id": "0x72b021217ca3fe68922a19aaf990109cb9d84e9ad004b4d2025ad6f529314419",
+    "source": "pyth",
+    "symbol": "Crypto.BONK/USD",
+    "description": "BONK / US DOLLAR"
+  },
+  "POPCAT": {
+    "pyth_id": "0xb9312a7ee50e189ef045aa3c7842e099b061bd9bdc99ac645956c3b660dc8cce",
+    "source": "pyth",
+    "symbol": "Crypto.POPCAT/USD",
+    "description": "POPCAT / US DOLLAR"
+  },
+  "FLOKI": {
+    "pyth_id": "0x6b1381ce7e874dc5410b197ac8348162c0dd6c0d4c9cd6322672d6c2b1d58293",
+    "source": "pyth",
+    "symbol": "Crypto.FLOKI/USD",
+    "description": "FLOKI / US DOLLAR"
+  },
+  "JTO": {
+    "pyth_id": "0xb43660a5f790c69354b0729a5ef9d50d68f1df92107540210b9cccba1f947cc2",
+    "source": "pyth",
+    "symbol": "Crypto.JTO/USD",
+    "description": "JITO / US DOLLAR"
+  }
+}

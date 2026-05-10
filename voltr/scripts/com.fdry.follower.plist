@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.fdry.follower</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>~/Projects/fdry/voltr/scripts/run-follower</string>
+        <string>follower:dry</string>
+    </array>
+
+    <key>RunAtLoad</key>
+    <true/>
+
+    <key>KeepAlive</key>
+    <true/>
+
+    <key>ThrottleInterval</key>
+    <integer>30</integer>
+
+    <key>StandardOutPath</key>
+    <string>~/Library/Logs/fdry.follower.log</string>
+
+    <key>StandardErrorPath</key>
+    <string>~/Library/Logs/fdry.follower.err</string>
+
+    <key>WorkingDirectory</key>
+    <string>~/Projects/fdry/voltr</string>
+
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin:/opt/homebrew/bin</string>
+    </dict>
+</dict>
+</plist>
