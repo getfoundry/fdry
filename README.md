@@ -2,7 +2,7 @@
 
 Foundry vault — a Voltr-backed Jupiter Prediction follower on Solana.
 
-Mirrors fade-the-rally signals from the imabettingman Polymarket harness onto
+Mirrors fade-the-rally signals from an upstream Polymarket harness onto
 Jupiter Prediction markets, funded from an on-chain $FDRY vault via the
 Trustful adaptor.
 
@@ -10,27 +10,25 @@ Trustful adaptor.
 
 ## Project compass
 
-- **`docs/NORTHSTAR.md`** — single source of truth: invariants, hard rules, and per-claim source-of-truth pinning.
-- **`docs/HANDOFF-2026-05-10.md`** — current actionable backlog (M2 paper-trade → M3 first live cycle → M4 cap ramp → M5 vault-PDA-signer).
-- **`docs/PLAN_FOLLOW_IMABETTINGMAN.md`** — original architecture plan.
 - **`docs/RANGER_VAULT_READY.md`** — vault auditor handoff package.
-- **`bash scripts/drift-sweep.sh`** — one-command verification that docs still match code + data. Run weekly or after any NORTHSTAR edit.
-- **`docs/research/whitelist-hitrate.json`** — per-subcategory hit-rate data backing the whitelist policy.
+- **`docs/SIGNAL_CONTRACT.md`** — L1 → L3 trigger contract.
+- **`docs/REVENUE_POLICY.md`** — fee + revenue routing.
+- **`bash scripts/drift-sweep.sh`** — one-command verification that docs still match code + data. Run weekly or after any operational change.
 
 ---
 
 ## 1. What this is
 
-`fdry` is the monorepo for a Solana-mainnet on-chain vault that mirrors the
-imabettingman fade-the-rally strategy onto Jupiter Prediction markets. Funds
-sit in a Voltr/Ranger vault denominated in $FDRY; per-trade, the Trustful
-adaptor swaps $FDRY → JupUSD, the follower submits a NO order against a Jup
+`fdry` is the monorepo for a Solana-mainnet on-chain vault that mirrors a
+fade-the-rally strategy onto Jupiter Prediction markets. Funds sit in a
+Voltr/Ranger vault denominated in $FDRY; per-trade, the Trustful adaptor
+swaps $FDRY → JupUSD, the follower submits a NO order against a Jup
 Prediction market, and on settlement the proceeds swap back to $FDRY.
 
 ## 2. Status
 
 - **Version:** v2 follower, **pre-launch (paper)**.
-- **Shipped:** bridge (Polymarket detector → `~/.fdry/triggers.ndjson`),
+- **Shipped:** bridge (Polymarket detector → ndjson trigger stream),
   resolver wiring (`jupMarketResolver` + 5-min TTL snapshot), follower
   orchestrator (`runFollower`), paper-ledger writer, launchd plists, drift
   sweep, 223 passing tests.
@@ -41,13 +39,10 @@ Prediction market, and on settlement the proceeds swap back to $FDRY.
 
 ## 3. Architecture
 
-See [docs/HANDOFF-2026-05-10.md](./docs/HANDOFF-2026-05-10.md) for the
-current state. Four layers connected only by JSON contracts and ndjson
-streams:
+Four layers connected only by JSON contracts and ndjson streams:
 
-- **L1 Signal** — imabettingman detector emits `~/.fdry/triggers.ndjson`
-  (one trigger per line) per
-  [docs/SIGNAL_CONTRACT.md](./docs/SIGNAL_CONTRACT.md).
+- **L1 Signal** — upstream detector emits a triggers ndjson (one trigger
+  per line) per [docs/SIGNAL_CONTRACT.md](./docs/SIGNAL_CONTRACT.md).
 - **L2 Vault** — Voltr/Ranger on-chain vault; manager keypair signs trades.
   Trustful adaptor handles $FDRY ↔ JupUSD swaps.
 - **L3 Follower** — [voltr/src/follower/](./voltr/src/follower) — reads L1,
@@ -93,22 +88,20 @@ pnpm voltr:dev          # follower against current env (default: paper mode)
 pnpm dev:frontend       # Vite dev server for the SPA
 ```
 
-Mainnet / launch procedures: **follow [docs/PAPER_TRADE_RUNBOOK.md](./docs/PAPER_TRADE_RUNBOOK.md)
-and [docs/HANDOFF-2026-05-10.md](./docs/HANDOFF-2026-05-10.md).** Do not run
-mainnet ops freehand.
+Mainnet / launch procedures are operator-only and not described in this
+public README. Do not run mainnet ops freehand.
 
 ## 6. Deploy
 
-- **Follower (L3)** — local macOS launchd today (3 plists per
-  `docs/PAPER_TRADE_RUNBOOK.md`). Future: Railway cron once paper-trade gates
-  pass.
+- **Follower (L3)** — local macOS launchd today (3 plists). Future: Railway
+  cron once paper-trade gates pass.
 - **Frontend** — **Cloudflare Pages**. Vite build → CF deploy. Do not use
   Vercel.
 - **Ledger (L4)** — append-only ndjson + optional GitHub Pages publish.
-- **Signal (L1)** — imabettingman harness on local macOS; bridges to
-  `~/.fdry/triggers.ndjson`.
+- **Signal (L1)** — upstream detector on local macOS; bridges to a triggers
+  ndjson.
 - **Vault (L2)** — already deployed via Voltr/Ranger. Manager keypair lives
-  at `~/.fdry/manager.json`.
+  outside the repo.
 
 ## 7. Testing
 
@@ -119,14 +112,13 @@ bash scripts/drift-sweep.sh                   # one-command doc/code drift verif
 
 ## 8. Honest caveats
 
-- **No live signing yet.** Paper-trade weekend is the next gate. Per
-  HANDOFF, the strategy is mirrored — not invented — so the edge is whatever
-  imabettingman's edge is, minus Jup Prediction's price tracking error vs
-  Polymarket.
+- **No live signing yet.** Paper-trade weekend is the next gate. The
+  strategy is mirrored — not invented — so the edge is whatever the upstream
+  detector's edge is, minus Jup Prediction's price tracking error vs the
+  source venue.
 - **~5s JupUSD exposure window.** Between `deposit_swap` confirmation and
-  `create_order` submission, JupUSD sits in the manager wallet. Named
-  exception to NORTHSTAR Hard Rule #2; kill-switch (emergency
-  `withdraw_swap`) is load-bearing for audit scope.
+  `create_order` submission, JupUSD sits in the manager wallet. The
+  kill-switch (emergency `withdraw_swap`) is load-bearing for audit scope.
 - **M5 native-adaptor path partially dead.** Jup Prediction `create_order`
   requires a Jup-controlled co-signer at slot 2; PDA-as-signer also rejected
   by Jup's pre-return `simulateTransaction`. Surviving candidates: Voltr
@@ -136,21 +128,21 @@ bash scripts/drift-sweep.sh                   # one-command doc/code drift verif
 
 ## 9. Links
 
-Primary references — read in this order if you are new to the repo:
+Primary references for code review and auditors:
 
-- [docs/NORTHSTAR.md](./docs/NORTHSTAR.md) — invariants and source-of-truth pinning.
-- [docs/HANDOFF-2026-05-10.md](./docs/HANDOFF-2026-05-10.md) — current backlog.
-- [docs/PAPER_TRADE_RUNBOOK.md](./docs/PAPER_TRADE_RUNBOOK.md) — M2 operator checklist.
-- [docs/PLAN_FOLLOW_IMABETTINGMAN.md](./docs/PLAN_FOLLOW_IMABETTINGMAN.md) — architecture plan.
 - [docs/RANGER_VAULT_READY.md](./docs/RANGER_VAULT_READY.md) — auditor handoff.
 - [docs/SIGNAL_CONTRACT.md](./docs/SIGNAL_CONTRACT.md) — L1 → L3 JSON contract.
-- [docs/M5_NATIVE_JUP_STRATEGY.md](./docs/M5_NATIVE_JUP_STRATEGY.md) — long-tail signer plan.
+- [docs/REVENUE_POLICY.md](./docs/REVENUE_POLICY.md) — fee + revenue routing.
+- [docs/SEED_MECHANISM_DECISION.md](./docs/SEED_MECHANISM_DECISION.md) — vault seed mechanism.
+- [docs/GIT_HYGIENE.md](./docs/GIT_HYGIENE.md) — gitignore + secrets policy.
 - [docs/_archive/symmetry-era/](./docs/_archive/symmetry-era/) — legacy
   Symmetry V3 rotation-vault docs, archived for audit history only.
 
 Harness artifacts (JSON, machine-readable):
 
 - [docs/oracles.json](./docs/oracles.json) — Pyth feed IDs.
-- [docs/ranger-idl.json](./docs/ranger-idl.json) — Ranger/Voltr program IDL.
-- [docs/ranger-vault.json](./docs/ranger-vault.json) — vault metadata.
-- [docs/research/whitelist-hitrate.json](./docs/research/whitelist-hitrate.json) — per-subcategory NO-hit rates.
+- [docs/pool.json](./docs/pool.json) — pool metadata.
+- [docs/slippage.json](./docs/slippage.json) — deposit slippage table.
+- [docs/ranger-idl.json](./docs/ranger-idl.json), [docs/ranger-vault.json](./docs/ranger-vault.json) — Voltr/Ranger references.
+- [docs/jupiter_routes_c5.json](./docs/jupiter_routes_c5.json) — Jupiter route fixtures.
+- [docs/stfdry_tokenomics_model.json](./docs/stfdry_tokenomics_model.json) — tokenomics model.
