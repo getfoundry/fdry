@@ -183,9 +183,9 @@ export async function processSignal(
   // call returns ok:true by construction. The real safety check on the open
   // path is assertSafeOrderTx below (wire-level signer-set check). This call
   // is retained as defense-in-depth IF Jup ever adds an `accounts` block to
-  // CreateOrderResponse (e.g. a future symmetry with CloseOrderResponse), at
-  // which point the structural check starts catching mismatched
-  // owner/authority/settlementMint without any further wiring.
+  // CreateOrderResponse (e.g. a future response shape mirroring
+  // CloseOrderResponse), at which point the structural check starts catching
+  // mismatched owner/authority/settlementMint without any further wiring.
   const verdict = assertSafeOrderResponse(jupResponse, {
     vaultPda: deps.vault.pda,
     managerPubkey: deps.manager.pubkey,

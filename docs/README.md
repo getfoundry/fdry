@@ -1,46 +1,61 @@
-# FDRY Quant Alpha Vault — Docs
+# fdry — docs
 
-Design and implementation docs for the FDRY-entry quant rotation vault on Symmetry.
+Design and implementation docs for the Foundry Voltr-backed Jupiter Prediction
+follower on Solana.
 
 ## Start here
 
 | Document | Purpose |
 |---|---|
-| [SPEC.md](./SPEC.md) | Full product spec. Architecture, vault config, flows, risks, decisions. |
-| [SHIP.md](./SHIP.md) | Day-by-day checklist from pre-flight to public launch. |
-| [SYMMETRY.md](./SYMMETRY.md) | Symmetry protocol reference — SDK calls, roles, fees. |
+| [NORTHSTAR.md](./NORTHSTAR.md) | Invariants, hard rules, source-of-truth pinning. |
+| [HANDOFF-2026-05-10.md](./HANDOFF-2026-05-10.md) | Current actionable backlog (M2 → M5). |
+| [PAPER_TRADE_RUNBOOK.md](./PAPER_TRADE_RUNBOOK.md) | M2 operator checklist. |
+| [PLAN_FOLLOW_IMABETTINGMAN.md](./PLAN_FOLLOW_IMABETTINGMAN.md) | Original architecture plan. |
+| [RANGER_VAULT_READY.md](./RANGER_VAULT_READY.md) | Vault auditor handoff package. |
 
 ## Key facts
 
-- **Venue:** Symmetry V3 (mainnet, permissionless), Program ID `BASKT7aKd8n7ibpUbwLP3Wiyxyi3yoiXsxBk4Hpumate`
-- **Entry token:** FDRY (via frontend Jupiter wrapper — not held inside vault)
-- **Trading base:** SOL, across 8-token memecoin universe
-- **Cadence:** Daily rebalance, driven by bible-EBM signal
-- **Fee:** 2% annual creator fee
-- **Pattern:** Option A (frontend-only 2-tx deposit/withdraw), no custom contract in v1
-- **Status:** Pre-launch, Phase 0 (oracle verification + pool bootstrap)
+- **Strategy:** mirror imabettingman fade-the-rally NO-buys onto Jup Prediction.
+- **Funding:** on-chain $FDRY vault (Voltr/Ranger), per-trade $FDRY → JupUSD via Trustful adaptor.
+- **Cadence:** trigger-driven, not scheduled.
+- **Settlement:** swap proceeds back to $FDRY on close.
+- **Status:** pre-launch (paper). Custody and submitOrder.ts open before M3.
 
-## Non-goals (v1)
+## Plan & phase docs
 
-- Lock FDRY — this architecture cycles FDRY, does not lock it
-- Generate meaningful fee income — $400/year expected at v1 AUM scale
-- Performance fees — disabled at Symmetry protocol level
-- Personal profitability — v1 is about mechanism validation and public track record
+- [M5_NATIVE_JUP_STRATEGY.md](./M5_NATIVE_JUP_STRATEGY.md) — long-tail signer architecture.
+- [PHASE2_HANDOFF.md](./PHASE2_HANDOFF.md) and [PHASE2_FORWARD_COLLECT_HANDOFF.md](./PHASE2_FORWARD_COLLECT_HANDOFF.md).
+- [PLAN_PHASE1_BUILD.md](./PLAN_PHASE1_BUILD.md).
+- [PLAN_LIVE_FDRY_TRADING.md](./PLAN_LIVE_FDRY_TRADING.md).
+- [PLAN_VALIDATE_CREATE_ORDER_INTEGRATION.md](./PLAN_VALIDATE_CREATE_ORDER_INTEGRATION.md).
+- [SEED_MECHANISM_DECISION.md](./SEED_MECHANISM_DECISION.md).
+- [SIGNAL_PIPELINE_PATCH.md](./SIGNAL_PIPELINE_PATCH.md).
 
-## File layout (to be created during implementation)
+## Contracts & schemas
 
-```
-fdry/
-├── docs/
-│   ├── README.md        (this file)
-│   ├── SPEC.md
-│   ├── SHIP.md
-│   ├── SYMMETRY.md
-│   ├── oracles.json     (Phase 0.1 output — oracle pubkeys per token)
-│   ├── pool.json        (Phase 0.2 output — Meteora pool metadata)
-│   └── vault.json       (Phase 1.2 output — mainnet vault pubkey + keys)
-├── frontend/            (Phase 2)
-├── bot/                 (Phase 3)
-└── runs/
-    └── spec_final_backtest/   (Phase 0.3 output)
-```
+- [SIGNAL_CONTRACT.md](./SIGNAL_CONTRACT.md) — L1 → L3 trigger contract.
+- [REVENUE_POLICY.md](./REVENUE_POLICY.md) — fee + revenue routing.
+- [GIT_HYGIENE.md](./GIT_HYGIENE.md) — what's gitignored and why.
+
+## Machine-readable artifacts
+
+- [oracles.json](./oracles.json) — Pyth feed IDs.
+- [pool.json](./pool.json) — pool metadata.
+- [slippage.json](./slippage.json) — deposit slippage table.
+- [ranger-idl.json](./ranger-idl.json), [ranger-vault.json](./ranger-vault.json) — Voltr/Ranger references.
+- [jupiter_routes_c5.json](./jupiter_routes_c5.json) — Jupiter route fixtures.
+- [backtest_final.json](./backtest_final.json) — backtest status snapshot.
+- [stfdry_tokenomics_model.json](./stfdry_tokenomics_model.json) — legacy tokenomics model (retained for revenue-modeling reference).
+
+## Recent handoffs
+
+- [HANDOFF-2026-05-10.md](./HANDOFF-2026-05-10.md) — latest, the actionable one.
+- [HANDOFF-2026-05-09.md](./HANDOFF-2026-05-09.md).
+- [HANDOFF-NATIVE-ADAPTOR-UNBLOCK.md](./HANDOFF-NATIVE-ADAPTOR-UNBLOCK.md).
+- [HANDOFF-PHASE1-ORCHESTRATION.md](./HANDOFF-PHASE1-ORCHESTRATION.md).
+
+## Archive
+
+[_archive/symmetry-era/](./_archive/symmetry-era/) — legacy Symmetry V3
+rotation-vault docs (CYCLE_*, HARNESS_VERDICT, SPEC, SHIP_*, FRONTEND_SPEC,
+etc.). Retained for audit history. Not load-bearing for current operations.
