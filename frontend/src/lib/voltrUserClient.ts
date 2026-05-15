@@ -150,3 +150,151 @@ export async function buildInstantWithdrawVaultIxs({
     withdrawIx,
   ];
 }
+
+// ── Waiting-period withdraw flow ───────────────────────────────────────────
+//
+// When `vault.vaultConfiguration.withdrawalWaitingPeriod > 0`, the program
+// rejects `createInstantWithdrawVaultIx` with `InstantWithdrawNotAllowed
+// (6015)`. Users must instead:
+//   1. call `createRequestWithdrawVaultIx` — escrows LP, creates a receipt
+//      PDA, stamps `withdrawableFromTs = now + waitingPeriod`.
+//   2. wait until `withdrawableFromTs`.
+//   3. call `createWithdrawVaultIx` — burns escrowed LP, sends asset, closes
+//      the receipt.
+// Or, at any time before step 3, cancel via `createCancelRequestWithdrawVaultIx`
+// (returns escrowed LP to user).
+//
+// Callers should gate behavior on the on-chain config readback
+// (`fetchVaultWaitingPeriodSeconds`), never on a hardcoded constant.
+
+export type BuildRequestWithdrawVaultIxsParams = Omit<
+  CommonUserVaultParams,
+  "vaultAssetMint"
+> & {
+  shareAmountBaseUnits: bigint;
+  isWithdrawAll?: boolean;
+};
+
+export async function buildRequestWithdrawVaultIxs({
+  client,
+  payer,
+  vault,
+  shareAmountBaseUnits,
+  isWithdrawAll = false,
+  computeUnits = DEFAULT_VOLTR_COMPUTE_UNITS,
+}: BuildRequestWithdrawVaultIxsParams): Promise<TransactionInstruction[]> {
+  const requestIx = await client.createRequestWithdrawVaultIx(
+    {
+      amount: new BN(shareAmountBaseUnits.toString()),
+      isAmountInLp: true,
+      isWithdrawAll,
+    },
+    {
+      payer,
+      userTransferAuthority: payer,
+      vault,
+    },
+  );
+
+  return [
+    ComputeBudgetProgram.setComputeUnitLimit({ units: computeUnits }),
+    requestIx,
+  ];
+}
+
+export type BuildClaimWithdrawVaultIxsParams = CommonUserVaultParams;
+
+export async function buildClaimWithdrawVaultIxs({
+  client,
+  payer,
+  vault,
+  vaultAssetMint,
+  assetTokenProgram = TOKEN_PROGRAM_ID,
+  computeUnits = DEFAULT_VOLTR_COMPUTE_UNITS,
+}: BuildClaimWithdrawVaultIxsParams): Promise<TransactionInstruction[]> {
+  const userAssetAta = getAssociatedTokenAddressSync(
+    vaultAssetMint,
+    payer,
+    false,
+    assetTokenProgram,
+  );
+  const claimIx = await client.createWithdrawVaultIx({
+    userTransferAuthority: payer,
+    vault,
+    vaultAssetMint,
+    assetTokenProgram,
+  });
+
+  return [
+    ComputeBudgetProgram.setComputeUnitLimit({ units: computeUnits }),
+    createAssociatedTokenAccountIdempotentInstruction(
+      payer,
+      userAssetAta,
+      payer,
+      vaultAssetMint,
+      assetTokenProgram,
+    ),
+    claimIx,
+  ];
+}
+
+export type BuildCancelRequestWithdrawVaultIxsParams = Omit<
+  CommonUserVaultParams,
+  "vaultAssetMint"
+>;
+
+export async function buildCancelRequestWithdrawVaultIxs({
+  client,
+  payer,
+  vault,
+  computeUnits = DEFAULT_VOLTR_COMPUTE_UNITS,
+}: BuildCancelRequestWithdrawVaultIxsParams): Promise<TransactionInstruction[]> {
+  const cancelIx = await client.createCancelRequestWithdrawVaultIx({
+    userTransferAuthority: payer,
+    vault,
+  });
+  return [
+    ComputeBudgetProgram.setComputeUnitLimit({ units: computeUnits }),
+    cancelIx,
+  ];
+}
+
+/**
+ * Read the vault's currently-declared withdrawal waiting period (seconds).
+ * 0 means instant withdraw is allowed.
+ */
+export async function fetchVaultWaitingPeriodSeconds(
+  client: VoltrClient,
+  vault: PublicKey,
+): Promise<number> {
+  const acc = await client.fetchVaultAccount(vault);
+  return acc.vaultConfiguration.withdrawalWaitingPeriod.toNumber();
+}
+
+export type UserWithdrawRequest = {
+  receipt: PublicKey;
+  amountLpEscrowed: bigint;
+  withdrawableFromTs: number;
+};
+
+/**
+ * Look up the user's open withdraw-request receipt for this vault, if any.
+ * Returns null when the receipt account does not exist (no pending request).
+ */
+export async function fetchUserWithdrawRequestReceipt(
+  client: VoltrClient,
+  vault: PublicKey,
+  user: PublicKey,
+): Promise<UserWithdrawRequest | null> {
+  const receipt = client.findRequestWithdrawVaultReceipt(vault, user);
+  try {
+    const acc = await client.fetchRequestWithdrawVaultReceiptAccount(receipt);
+    return {
+      receipt,
+      amountLpEscrowed: BigInt(acc.amountLpEscrowed.toString()),
+      withdrawableFromTs: acc.withdrawableFromTs.toNumber(),
+    };
+  } catch {
+    return null;
+  }
+}

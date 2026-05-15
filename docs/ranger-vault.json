@@ -3,8 +3,8 @@
   "lpMint_pda": "G8e9i9RADPsxJtiCJsGC4tSx2kgCkGbEkdn7aajt2nqW",
   "assetIdleAuth_pda": "9BSnA4xVqHkDVxEKCEMUh8FTVNE8JMCKTDmzLQLUYWbr",
   "asset": "2ZiSPGncrkwWa6GBZB4EDtsfq7HEWwkwsPFzEXieXjNL",
-  "admin": "HotWalletXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
-  "manager": "HotWalletXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+  "admin": "8n7QzgDuEiQUxCXNb7VSiq3fenA2UjeMTUhoiPK7QGR8",
+  "manager": "8n7QzgDuEiQUxCXNb7VSiq3fenA2UjeMTUhoiPK7QGR8",
   "signature": "5amU3Y3y5cnQ1uqECqEPi9DjKrefXBRNudH5Smn71bBtXfxSTbN5N3Rof9sDE8zJRnaspbbCuXqfwiVEML21oQnG",
   "createdAt": "2026-04-20T07:09:30.634Z",
   "seeds": [
@@ -29,6 +29,14 @@
       "oldMaxCap": "1000000000000000",
       "newMaxCap": "1000000000000000000",
       "at": "2026-04-20T08:52:40.123Z"
+    }
+  ],
+  "waitingPeriodUpdates": [
+    {
+      "signature": "5XBDEpeJHjRRKmGv1zdBJ4fX5WcyHwQHenxEeAsKX7LYpA9aVWfxu538XBwDuRFzQHheGuh4Gv16MWqKxyHrh8Yv",
+      "oldWaitingPeriod": 0,
+      "newWaitingPeriod": 259200,
+      "at": "2026-05-15T00:33:57.592Z"
     }
   ]
 }

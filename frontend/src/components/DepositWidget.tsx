@@ -16,7 +16,13 @@ import { recordDeposit, recordWithdraw } from "../lib/positionLedger";
 import {
   buildDepositVaultIxs,
   buildInstantWithdrawVaultIxs,
+  buildRequestWithdrawVaultIxs,
+  buildClaimWithdrawVaultIxs,
+  buildCancelRequestWithdrawVaultIxs,
   decimalAmountToBaseUnits,
+  fetchVaultWaitingPeriodSeconds,
+  fetchUserWithdrawRequestReceipt,
+  type UserWithdrawRequest,
 } from "../lib/voltrUserClient";
 import { FDRY_DECIMALS, VAULT_ASSET_MINT_STR } from "../lib/voltrConfig";
 import { BuyFdryCta } from "./BuyFdryCta";
@@ -33,6 +39,9 @@ type Step =
   | "confirming"
   | "done_deposit"
   | "done_withdraw"
+  | "done_request"
+  | "done_claim"
+  | "done_cancel"
   | "error";
 
 type Props = {
@@ -77,6 +86,13 @@ export function DepositWidget({
   const [txs, setTxs] = useState<Array<{ label: string; sig: string }>>([]);
   const [liveNav, setLiveNav] = useState<number | null>(null);
 
+  // On-chain readback — source of truth for whether instant withdraw is allowed.
+  const [waitingPeriodSeconds, setWaitingPeriodSeconds] = useState<number | null>(null);
+  // User's pending withdraw-request receipt (if any). Polled while connected.
+  const [withdrawRequest, setWithdrawRequest] = useState<UserWithdrawRequest | null>(null);
+  // Reactive `now` for countdown rendering. Ticks every second when there is a pending request.
+  const [nowSec, setNowSec] = useState<number>(() => Math.floor(Date.now() / 1000));
+
   const client = useMemo(() => new VoltrClient(connection), [connection]);
 
   const vaultPk = useMemo(() => new PublicKey(vaultPubkey), [vaultPubkey]);
@@ -109,6 +125,40 @@ export function DepositWidget({
     return () => { alive = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vaultPubkey, fdryMint, vaultMint]);
+
+  // Fetch on-chain withdrawalWaitingPeriod (seconds). Re-runs when vault changes.
+  useEffect(() => {
+    let alive = true;
+    fetchVaultWaitingPeriodSeconds(client, vaultPk)
+      .then((s) => { if (alive) setWaitingPeriodSeconds(s); })
+      .catch(() => { if (alive) setWaitingPeriodSeconds(null); });
+    return () => { alive = false; };
+  }, [client, vaultPk]);
+
+  // Poll the user's withdraw-request receipt. Polls every 12s (and ticks the
+  // local `nowSec` once per second so the countdown re-renders smoothly).
+  useEffect(() => {
+    if (!pubkey) {
+      setWithdrawRequest(null);
+      return;
+    }
+    let alive = true;
+    const load = async () => {
+      const r = await fetchUserWithdrawRequestReceipt(client, vaultPk, pubkey).catch(() => null);
+      if (alive) setWithdrawRequest(r);
+    };
+    load();
+    const i = setInterval(load, 12_000);
+    return () => { alive = false; clearInterval(i); };
+  }, [client, vaultPk, pubkey]);
+
+  // Per-second tick so withdrawableFromTs countdown re-renders. Only runs when
+  // a request is pending and the unlock is still in the future.
+  useEffect(() => {
+    if (!withdrawRequest) return;
+    const t = setInterval(() => setNowSec(Math.floor(Date.now() / 1000)), 1_000);
+    return () => clearInterval(t);
+  }, [withdrawRequest?.withdrawableFromTs]);
 
   // Balance poll
   useEffect(() => {
@@ -154,7 +204,7 @@ export function DepositWidget({
       return "LP account not created — try again (idempotent-create may have been skipped).";
     }
     if (/custom.*6015|InstantWithdrawNotAllowed/i.test(raw)) {
-      return "Instant withdraw is disabled for this vault (shouldn't happen — contact team).";
+      return "This vault requires a withdraw request + waiting period. Switch to the request flow.";
     }
     if (/insufficient.*lamports|Transfer:.*insufficient/i.test(raw)) {
       return "Insufficient SOL in wallet for gas (~0.005 SOL needed).";
@@ -264,33 +314,41 @@ export function DepositWidget({
     }
   };
 
-  const withdrawToFdry = async () => {
-    if (!publicKey || !signTransaction || !pubkey) return;
-    setError(null); setTxs([]);
+  // ── Withdraw handlers ───────────────────────────────────────────────────
+  // Four on-chain paths, gated by the vault's on-chain withdrawalWaitingPeriod
+  // and the user's current receipt state:
+  //   1. instantWithdraw   — waitingPeriod == 0, no queue.
+  //   2. requestWithdraw   — waitingPeriod  > 0, no existing receipt.
+  //   3. claimWithdraw     — receipt exists AND now >= withdrawableFromTs.
+  //   4. cancelRequest     — receipt exists AND user wants their LP back.
+  // `submitWithdrawAction` is the single click handler that branches.
 
-    const shares = parseFloat(amount || "0");
-    if (!shares || shares <= 0) return;
-
-    // Preflight: does the user have any shares to burn? (Book 1: never-deposited UX)
+  const preflightHasShares = async (): Promise<boolean> => {
     try {
       const userLpAtaCheck = getAssociatedTokenAddressSync(
-        lpMintPk, pubkey, false, TOKEN_PROGRAM_ID,
+        lpMintPk, pubkey!, false, TOKEN_PROGRAM_ID,
       );
       const bal = await connection.getTokenAccountBalance(userLpAtaCheck);
       const raw = bal?.value?.amount ? BigInt(bal.value.amount) : 0n;
       if (raw === 0n) {
         setError(`You have no ${shareSym} to withdraw. Deposit first.`);
         setStep("error");
-        return;
+        return false;
       }
+      return true;
     } catch {
-      // AccountNotFound → LP ATA doesn't exist yet.
       setError(`You have no ${shareSym} to withdraw. Deposit first.`);
       setStep("error");
-      return;
+      return false;
     }
+  };
 
-
+  const instantWithdraw = async () => {
+    if (!publicKey || !signTransaction || !pubkey) return;
+    setError(null); setTxs([]);
+    const shares = parseFloat(amount || "0");
+    if (!shares || shares <= 0) return;
+    if (!(await preflightHasShares())) return;
     try {
       setStep("building");
       const ixs = await buildInstantWithdrawVaultIxs({
@@ -301,9 +359,7 @@ export function DepositWidget({
         assetTokenProgram: ASSET_TOKEN_PROGRAM,
         shareAmountBaseUnits: decimalAmountToBaseUnits(amount, assetDecs),
       });
-
       await sendAndConfirm(ixs, `Voltr instant withdraw → ${assetSym}`);
-
       setStep("done_withdraw");
       const navNow = (await fetchNav()) ?? liveNav ?? 1;
       if (navNow != null) setLiveNav(navNow);
@@ -312,18 +368,119 @@ export function DepositWidget({
       onPositionChange?.();
       await reloadBalances();
     } catch (e) {
-      const raw = (e as Error).message || String(e);
-      setError(humanizeErr(raw));
+      setError(humanizeErr((e as Error).message || String(e)));
       setStep("error");
     }
   };
+
+  const requestWithdraw = async () => {
+    if (!publicKey || !signTransaction || !pubkey) return;
+    setError(null); setTxs([]);
+    const shares = parseFloat(amount || "0");
+    if (!shares || shares <= 0) return;
+    if (!(await preflightHasShares())) return;
+    try {
+      setStep("building");
+      const ixs = await buildRequestWithdrawVaultIxs({
+        client,
+        payer: pubkey,
+        vault: vaultPk,
+        shareAmountBaseUnits: decimalAmountToBaseUnits(amount, assetDecs),
+      });
+      await sendAndConfirm(ixs, `Voltr withdraw request (${shares} ${shareSym})`);
+      setStep("done_request");
+      // Refresh receipt + balances so the UI flips into "pending" state.
+      const r = await fetchUserWithdrawRequestReceipt(client, vaultPk, pubkey).catch(() => null);
+      setWithdrawRequest(r);
+      onPositionChange?.();
+      await reloadBalances();
+    } catch (e) {
+      setError(humanizeErr((e as Error).message || String(e)));
+      setStep("error");
+    }
+  };
+
+  const claimWithdraw = async () => {
+    if (!publicKey || !signTransaction || !pubkey) return;
+    if (!withdrawRequest) return;
+    setError(null); setTxs([]);
+    try {
+      setStep("building");
+      const ixs = await buildClaimWithdrawVaultIxs({
+        client,
+        payer: pubkey,
+        vault: vaultPk,
+        vaultAssetMint: vaultAssetMintPk,
+        assetTokenProgram: ASSET_TOKEN_PROGRAM,
+      });
+      await sendAndConfirm(ixs, `Voltr claim withdraw → ${assetSym}`);
+      setStep("done_claim");
+      // Receipt closes on claim; refresh state.
+      const navNow = (await fetchNav()) ?? liveNav ?? 1;
+      if (navNow != null) setLiveNav(navNow);
+      const sharesClaimed = Number(withdrawRequest.amountLpEscrowed) / 10 ** assetDecs;
+      const assetOut = sharesClaimed * navNow;
+      recordWithdraw(vaultPubkey, pubkey.toBase58(), assetOut, sharesClaimed);
+      setWithdrawRequest(null);
+      onPositionChange?.();
+      await reloadBalances();
+    } catch (e) {
+      setError(humanizeErr((e as Error).message || String(e)));
+      setStep("error");
+    }
+  };
+
+  const cancelWithdraw = async () => {
+    if (!publicKey || !signTransaction || !pubkey) return;
+    if (!withdrawRequest) return;
+    setError(null); setTxs([]);
+    try {
+      setStep("building");
+      const ixs = await buildCancelRequestWithdrawVaultIxs({
+        client,
+        payer: pubkey,
+        vault: vaultPk,
+      });
+      await sendAndConfirm(ixs, "Voltr cancel withdraw request");
+      setStep("done_cancel");
+      setWithdrawRequest(null);
+      onPositionChange?.();
+      await reloadBalances();
+    } catch (e) {
+      setError(humanizeErr((e as Error).message || String(e)));
+      setStep("error");
+    }
+  };
+
+  const submitWithdrawAction = () => {
+    // Branch on on-chain state. Never on a hardcoded vault toggle.
+    if (waitingPeriodSeconds === null) {
+      // Config not loaded yet — refuse rather than guess.
+      setError("Loading vault config… try again in a moment.");
+      setStep("error");
+      return;
+    }
+    if (waitingPeriodSeconds === 0) return instantWithdraw();
+    if (withdrawRequest && nowSec >= withdrawRequest.withdrawableFromTs) {
+      return claimWithdraw();
+    }
+    if (withdrawRequest) {
+      // Pending request; primary button cancels (claim flips in when unlocked).
+      return cancelWithdraw();
+    }
+    return requestWithdraw();
+  };
+
 
   const shortAddr = (k: PublicKey | null) =>
     k ? `${k.toBase58().slice(0, 4)}…${k.toBase58().slice(-4)}` : "";
 
   const amt = parseFloat(amount || "0");
   const amtValid = amt > 0;
-  const busy = step !== "idle" && step !== "done_deposit" && step !== "done_withdraw" && step !== "error";
+  const isDoneStep = (s: Step) =>
+    s === "done_deposit" || s === "done_withdraw" ||
+    s === "done_request" || s === "done_claim" || s === "done_cancel";
+  const busy = step !== "idle" && !isDoneStep(step) && step !== "error";
 
   // Use live NAV if loaded; fall back to prop (for stories/tests) or 1.0.
   const effNav = liveNav != null ? liveNav : (navPerShareInFdry ?? 1);
@@ -331,6 +488,28 @@ export function DepositWidget({
   const estFdryFromWithdraw = amt * effNav;
   const isFdryDepositAsset = fdryMint === VAULT_ASSET_MINT_STR || assetSym.toUpperCase() === "FDRY";
   const depositOverBalance = mode === "deposit" && fdryBalance !== null && amtValid && amt > fdryBalance;
+
+  // ── Withdraw UX state derived from on-chain config + receipt ────────────
+  const hasWaitingPeriod = (waitingPeriodSeconds ?? 0) > 0;
+  const requestUnlocked = !!withdrawRequest && nowSec >= withdrawRequest.withdrawableFromTs;
+  const requestPendingUnlock = !!withdrawRequest && !requestUnlocked;
+  const secondsUntilUnlock = withdrawRequest
+    ? Math.max(0, withdrawRequest.withdrawableFromTs - nowSec)
+    : 0;
+  const formatDurationCompact = (sec: number): string => {
+    if (sec <= 0) return "now";
+    const d = Math.floor(sec / 86_400);
+    const h = Math.floor((sec % 86_400) / 3_600);
+    const m = Math.floor((sec % 3_600) / 60);
+    const s = sec % 60;
+    if (d > 0) return `${d}d ${h}h ${m}m`;
+    if (h > 0) return `${h}h ${m}m ${s}s`;
+    if (m > 0) return `${m}m ${s}s`;
+    return `${s}s`;
+  };
+  const escrowedShares = withdrawRequest
+    ? Number(withdrawRequest.amountLpEscrowed) / 10 ** assetDecs
+    : 0;
 
   const depositBtnLabel =
     !pubkey ? "Connect wallet first"
@@ -342,21 +521,43 @@ export function DepositWidget({
       : step === "done_deposit" ? "Deposit submitted ✓"
       : `Deposit ${amount} ${assetSym} → ${shareSym}`;
 
-  const withdrawBtnLabel =
-    !pubkey ? "Connect wallet first"
-      : !amtValid ? `Enter ${shareSym} amount`
-      : step === "building" ? "Preparing withdraw…"
-      : step === "signing" ? "Sign in wallet →"
-      : step === "confirming" ? "Confirming…"
-      : step === "done_withdraw" ? "Withdraw submitted ✓"
-      : `Burn ${amount} ${shareSym} → ${assetSym}`;
+  // Withdraw label respects on-chain state. The button shape changes
+  // (request → cancel → claim) as the receipt progresses.
+  const withdrawBtnLabel = (() => {
+    if (!pubkey) return "Connect wallet first";
+    if (step === "building") return "Preparing…";
+    if (step === "signing") return "Sign in wallet →";
+    if (step === "confirming") return "Confirming…";
+    if (step === "done_withdraw") return "Withdraw submitted ✓";
+    if (step === "done_request") return "Request submitted ✓";
+    if (step === "done_claim") return "Claim submitted ✓";
+    if (step === "done_cancel") return "Request canceled ✓";
+
+    if (waitingPeriodSeconds === null) return "Loading vault…";
+
+    if (!hasWaitingPeriod) {
+      if (!amtValid) return `Enter ${shareSym} amount`;
+      return `Burn ${amount} ${shareSym} → ${assetSym}`;
+    }
+
+    if (requestUnlocked) return `Claim ${escrowedShares.toLocaleString(undefined, { maximumFractionDigits: 4 })} ${shareSym} → ${assetSym}`;
+    if (requestPendingUnlock) return `Cancel pending request (${formatDurationCompact(secondsUntilUnlock)} left)`;
+
+    if (!amtValid) return `Enter ${shareSym} amount`;
+    const days = Math.round(waitingPeriodSeconds / 86_400);
+    return `Request withdraw — ${days}d unlock`;
+  })();
 
   return (
     <div className="rounded-2xl sm:rounded-3xl border border-line bg-white p-4 sm:p-6 md:p-8">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-5">
         <div>
           <div className="text-xs uppercase tracking-wider text-ember font-medium mb-1">
-            {mode === "deposit" ? `Deposit ${assetSym}` : "Instant withdraw"}
+            {mode === "deposit"
+              ? `Deposit ${assetSym}`
+              : hasWaitingPeriod
+                ? `Withdraw — ${Math.round((waitingPeriodSeconds ?? 0) / 86_400)}d unlock`
+                : "Instant withdraw"}
           </div>
           <h3 className="font-display text-lg sm:text-xl md:text-2xl font-bold">Stake {assetSym}. Mint {shareSym}.</h3>
         </div>
@@ -465,15 +666,66 @@ export function DepositWidget({
           </div>
         )}
 
-        {mode === "withdraw" && amtValid && (
+        {mode === "withdraw" && amtValid && !withdrawRequest && (
           <div className="p-4 rounded-2xl border border-dashed border-line bg-white text-sm">
             <div className="space-y-1.5 font-mono text-xs">
-              <Row label={`Burn ${amount} ${shareSym}`} value="single tx" />
-              <Row label={`→ ≈ ${estFdryFromWithdraw.toFixed(4)} ${assetSym}`} value="paid instantly" />
-              <div className="pt-2 mt-2 border-t border-line text-muted leading-relaxed text-[11px]">
-                The vault pays {assetSym} pro-rata instantly. No swap needed.
-              </div>
+              {hasWaitingPeriod ? (
+                <>
+                  <Row label={`Escrow ${amount} ${shareSym}`} value="step 1 of 2" />
+                  <Row
+                    label={`Wait ${Math.round((waitingPeriodSeconds ?? 0) / 86_400)}d`}
+                    value={`unlocks ≈ ${new Date((nowSec + (waitingPeriodSeconds ?? 0)) * 1000).toLocaleString()}`}
+                  />
+                  <Row label={`→ Claim ≈ ${estFdryFromWithdraw.toFixed(4)} ${assetSym}`} value="step 2 of 2" />
+                  <div className="pt-2 mt-2 border-t border-line text-muted leading-relaxed text-[11px]">
+                    Request now, claim after the unlock. You can cancel any time before claiming and your {shareSym} returns.
+                  </div>
+                </>
+              ) : (
+                <>
+                  <Row label={`Burn ${amount} ${shareSym}`} value="single tx" />
+                  <Row label={`→ ≈ ${estFdryFromWithdraw.toFixed(4)} ${assetSym}`} value="paid instantly" />
+                  <div className="pt-2 mt-2 border-t border-line text-muted leading-relaxed text-[11px]">
+                    The vault pays {assetSym} pro-rata instantly. No swap needed.
+                  </div>
+                </>
+              )}
             </div>
+          </div>
+        )}
+
+        {/* Pending withdraw-request panel (task #9). Visible whenever the user
+            has an open receipt on this vault, regardless of selected mode. */}
+        {mode === "withdraw" && withdrawRequest && (
+          <div
+            className={
+              "p-4 rounded-2xl border text-sm " +
+              (requestUnlocked
+                ? "border-emerald-200 bg-emerald-50 text-emerald-900"
+                : "border-amber-200 bg-amber-50 text-amber-900")
+            }
+          >
+            <div className="font-semibold text-sm mb-2">
+              {requestUnlocked
+                ? `Ready to claim — your ${shareSym} can be redeemed now.`
+                : `Withdraw request pending — ${formatDurationCompact(secondsUntilUnlock)} until unlock.`}
+            </div>
+            <div className="space-y-1 font-mono text-xs">
+              <Row
+                label={`Escrowed ${shareSym}`}
+                value={escrowedShares.toLocaleString(undefined, { maximumFractionDigits: 6 })}
+              />
+              <Row
+                label="Unlocks at"
+                value={new Date(withdrawRequest.withdrawableFromTs * 1000).toLocaleString()}
+              />
+              <Row label="Receipt" value={`${withdrawRequest.receipt.toBase58().slice(0, 4)}…${withdrawRequest.receipt.toBase58().slice(-4)}`} />
+            </div>
+            {!requestUnlocked && (
+              <div className="text-[11px] text-muted leading-relaxed pt-2 mt-2 border-t border-amber-200">
+                Cancel any time before unlock to return your {shareSym}. After unlock, the primary button switches to Claim.
+              </div>
+            )}
           </div>
         )}
 
@@ -486,11 +738,16 @@ export function DepositWidget({
 
         {/* Action button */}
         <button
-          onClick={mode === "deposit" ? depositFromFdry : withdrawToFdry}
+          onClick={mode === "deposit" ? depositFromFdry : submitWithdrawAction}
           disabled={
-            !pubkey || !amtValid || busy ||
-            (mode === "deposit" && fdryBalance !== null && amt > fdryBalance) ||
-            (mode === "withdraw" && stFdryBalance !== null && amt > stFdryBalance)
+            !pubkey || busy ||
+            (mode === "deposit" && (!amtValid || (fdryBalance !== null && amt > fdryBalance))) ||
+            // Withdraw: when there's a pending receipt the button cancels/claims,
+            // so amount/balance checks don't apply. Otherwise require a valid amount
+            // and sufficient share balance.
+            (mode === "withdraw" && !withdrawRequest && (
+              !amtValid || (stFdryBalance !== null && amt > stFdryBalance)
+            ))
           }
           className="w-full py-4 rounded-2xl bg-molten text-white font-display font-semibold text-lg shadow-lg shadow-ember/20 hover:opacity-95 transition disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
           type="button"
@@ -499,12 +756,14 @@ export function DepositWidget({
         </button>
 
         {/* Success/error panels */}
-        {(step === "done_deposit" || step === "done_withdraw") && (
+        {isDoneStep(step) && (
           <div className="p-4 rounded-2xl border border-emerald-200 bg-emerald-50 text-emerald-900">
             <div className="font-semibold text-sm mb-2">
-              {step === "done_deposit"
-                ? `Deposit confirmed. ${shareSym} is in your wallet.`
-                : `Withdraw confirmed. ${assetSym} is in your wallet.`}
+              {step === "done_deposit" && `Deposit confirmed. ${shareSym} is in your wallet.`}
+              {step === "done_withdraw" && `Withdraw confirmed. ${assetSym} is in your wallet.`}
+              {step === "done_request" && `Request submitted. Your ${shareSym} is escrowed until the unlock time.`}
+              {step === "done_claim" && `Claim confirmed. ${assetSym} is in your wallet.`}
+              {step === "done_cancel" && `Request canceled. Your ${shareSym} is back in your wallet.`}
             </div>
             <div className="text-xs space-y-1 font-mono">
               {txs.map((t) => (
@@ -529,6 +788,8 @@ export function DepositWidget({
         <p className="text-xs text-muted/80 leading-relaxed">
           {mode === "deposit" ? (
             <>You sign one tx: <span className="font-mono">Voltr deposit</span>. {assetSym} in, {shareSym} out — same block.</>
+          ) : hasWaitingPeriod ? (
+            <>Two signatures, separated by the unlock window: <span className="font-mono">request_withdraw</span> escrows your {shareSym}, then <span className="font-mono">withdraw</span> pays {assetSym} once the {Math.round((waitingPeriodSeconds ?? 0) / 86_400)}d cooldown elapses.</>
           ) : (
             <>You sign one tx: <span className="font-mono">Voltr instant withdraw</span>. {shareSym} burns, {assetSym} arrives — same block.</>
           )}

@@ -23,7 +23,12 @@ export const VAULT_NAME = "Foundry FDRY Staking Vault";
 export const VAULT_DESCRIPTION =
   "Stake FDRY to receive stFDRY. Chain-level FDRY-only ingress.";
 
-// Step-2 firmament values. All fees = 0, no degradation window, no waiting period.
+// Step-2 firmament values. All fees = 0, no degradation window.
+// withdrawalWaitingPeriod = 3 days (259_200 seconds) — unwind-buffer cooldown.
+//   Instant-withdraw is disabled at the program level; UI must use the
+//   request_withdraw → wait → claim path. See frontend/src/lib/voltrUserClient.ts
+//   and DepositWidget.tsx; gate UX on the on-chain config readback, not on this
+//   constant.
 // maxCap = 1e15 base units (FDRY has 9 decimals => 1_000_000 FDRY effective cap).
 export const DEFAULT_VAULT_CONFIG: VaultConfig = {
   maxCap: new BN("1000000000000000"),
@@ -35,7 +40,7 @@ export const DEFAULT_VAULT_CONFIG: VaultConfig = {
   adminManagementFee: 0,
   redemptionFee: 0,
   issuanceFee: 0,
-  withdrawalWaitingPeriod: new BN(0),
+  withdrawalWaitingPeriod: new BN(259200),
 };
 
 /**

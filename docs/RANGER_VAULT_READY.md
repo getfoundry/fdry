@@ -30,13 +30,13 @@ Mainnet DRY_RUN simulation passes. All 11 VaultInitializationInput fields decode
 - asset = FDRY `2ZiSPGncrkwWa6GBZB4EDtsfq7HEWwkwsPFzEXieXjNL`
 - max_cap = 1M FDRY (raisable via update_vault_config)
 - all 6 fees = 0 bps
-- withdrawal_waiting_period = 0 (instant-withdraw enabled)
+- withdrawal_waiting_period = 259_200s (3 days) — instant-withdraw disabled at program level; UI must use request_withdraw → wait → claim. Pushed on-chain to live vault `Bpr49sQXsxwNXNMRWS2v3tTBGWu2QgZtdA83BX77xBX1` via tx `5XBDEpeJHjRRKmGv1zdBJ4fX5WcyHwQHenxEeAsKX7LYpA9aVWfxu538XBwDuRFzQHheGuh4Gv16MWqKxyHrh8Yv`.
 - start_at_ts = 0 (live on init)
 - name = "Foundry FDRY Staking Vault"
 - description = "Stake FDRY to receive stFDRY. Chain-level FDRY-only ingress."
 
 ## References
-- `~/Projects/fdry/.claude/workflow-loop.default.teachings.local.md` — full 9-day record (both cycles)
+- `/Users/lekt9/Projects/fdry/.claude/jesus-loop.default.teachings.local.md` — full 9-day record (both cycles)
 - `docs/FDRY_ONLY_HANDOFF.md` — prior cycle's decision brief (Vessel A/B/C/D); Vessel E (Ranger) is what we actually shipped
 - `docs/SHIP_FDRY_ONLY.md` — prior ship-list (now superseded by this file for the FDRY-in path)
 - Voltr program `vVoLTRjQmtFpiYoegx285Ze4gsLJ8ZxgFKVcuvmG1a8` mainnet

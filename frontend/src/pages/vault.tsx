@@ -3,9 +3,8 @@ import { Link, useSearchParams } from "react-router-dom";
 import { DepositWidget } from "../components/DepositWidget";
 import NavChart from "../components/NavChart";
 import { PortfolioPanel } from "../components/PortfolioPanel";
-import { StrategyLivePanel } from "../components/StrategyLivePanel";
+import { PolymarketStrategyPanel } from "../components/PolymarketStrategyPanel";
 import { VaultExplainerCard } from "../components/VaultExplainerCard";
-import { VaultStrategyPanel } from "../components/VaultStrategyPanel";
 import { useLiveTreasury } from "../hooks/useLiveTreasury";
 import { useVaultInfo } from "../hooks/useVaultInfo";
 import {
@@ -62,6 +61,9 @@ export default function VaultPage() {
   const shareSymbol = canonical ? "stFDRY" : `v${assetSymbol}`;
   const navPerShareInAsset = chainInfo?.navPerShareInAsset ?? 1;
   const creatorWallet = chainInfo?.manager ?? CREATOR_WALLET_STR;
+  const withdrawalWaitSec = chainInfo?.withdrawalWaitingPeriodSec ?? null;
+  const withdrawalWaitDays =
+    withdrawalWaitSec === null ? null : Math.round(withdrawalWaitSec / 86_400);
   const [posRefresh, setPosRefresh] = useState(0);
 
   const bumpPortfolio = () => setPosRefresh((n) => n + 1);
@@ -144,8 +146,8 @@ export default function VaultPage() {
                 // buy FDRY, deposit into the vault, verify the live state on-chain.
               </span>
               <span className="hidden sm:inline">
-                // live state pulled straight from Solana RPC every 20s. no server, no
-                indexer. every number below comes from a public read you can verify on Solscan.
+                // live state pulled straight from Solana RPC every 20s. withdraws use a
+                3-day request queue, then claim. strategy evidence stays separate below.
               </span>
             </p>
           </div>
@@ -189,7 +191,7 @@ export default function VaultPage() {
                 </h2>
                 <p className="mt-1 max-w-2xl font-mono text-sm lowercase text-muted">
                   buy FDRY on Jupiter, then deposit it into Voltr. two separate
-                  steps, one clear path.
+                  steps, one clear path. exits are request → wait 3 days → claim.
                 </p>
               </div>
               {canonical && (
@@ -233,7 +235,8 @@ export default function VaultPage() {
             <div className="mt-4 rounded-2xl border border-line bg-soft p-4 text-xs leading-relaxed text-muted">
               <span className="font-mono font-semibold text-ink">before deposit</span> ·
               Jupiter only buys FDRY for your wallet. Voltr mints stFDRY after
-              you deposit. Read{" "}
+              you deposit. Withdrawals are not instant: request, wait 3 days, then
+              claim your pro-rata share. Read{" "}
               <a href="#operator-discretion" className="text-ember hover:underline">
                 exploratory work
               </a>{" "}
@@ -242,7 +245,7 @@ export default function VaultPage() {
           </div>
         </section>
 
-        <section className="mb-4 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-4">
+        <section className="mb-4 grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-5">
           <Stat
             label="NAV (USD)"
             value={live.loading ? "..." : fmtUsd(live.navUsd)}
@@ -266,6 +269,12 @@ export default function VaultPage() {
             value={live.loading ? "..." : `${fmtNum(live.nativeSolBalance, 4)} SOL`}
             sub={fmtUsd(live.nativeSolBalance * live.solPrice)}
             hint="// rent SOL held by the vault account. FDRY lives in a PDA-owned ATA."
+          />
+          <Stat
+            label="Withdraw lock"
+            value={withdrawalWaitDays === null ? "..." : `${withdrawalWaitDays} days`}
+            sub="request, wait, claim"
+            hint="// on-chain withdrawal_waiting_period. instant withdraw is disabled while this is non-zero."
           />
         </section>
 
@@ -405,31 +414,29 @@ export default function VaultPage() {
             <span className="font-mono text-xs uppercase text-ember">// the strategy</span>
           </div>
           <h2 className="mb-4 font-display text-2xl font-bold lowercase md:text-3xl">
-            <span className="molten-text">david</span> is part of this vault, not a second vault.
+            <span className="molten-text">strategy work</span> is tracked, not promised.
           </h2>
           <div className="space-y-3 font-mono text-sm leading-relaxed text-ink/80 md:text-base">
             <p>
-              David is the strategy process that can operate under the FDRY vault. It is
-              not a separate deposit product, not a separate share token, and not a
-              second place to send capital. The only user-facing vault is this Voltr vault.
+              The current strategy evidence comes from imabettingman's small Polymarket
+              account, not from hidden vault deployment. It is shown here so depositors
+              can inspect what is being tested before any broader treasury decision.
             </p>
             <p>
-              <span className="font-semibold text-ink">Strategy idea:</span> cluster Solana
-              tokens by recent movement, pick the statistical outcome, and only count
-              results after real frictions. The live panel reads observed service state,
-              not invented paper P&amp;L.
+              <span className="font-semibold text-ink">Current idea:</span> fade
+              mid-event Polymarket rallies with a small account, monitor live positions,
+              and keep spreads blocked after the 2026-05-15 review.
             </p>
             <p>
               <span className="font-semibold text-ink">Claim boundary:</span> no
-              market-beating return, guaranteed profit, or live trading claim should appear
-              unless the page can show live service state and on-chain vault state.
+              guaranteed return or market-beating claim. The panel can show open account
+              state; it cannot promise future fills, outcomes, or gains.
             </p>
           </div>
         </section>
 
         <VaultExplainerCard />
-        <VaultStrategyPanel />
-        <StrategyLivePanel />
+        <PolymarketStrategyPanel />
 
         <section
           id="operator-discretion"
@@ -532,7 +539,8 @@ export default function VaultPage() {
                 failed · instant withdraw not allowed
               </span>{" "}
               - Voltr error 6015 <code className="font-mono">InstantWithdrawNotAllowed</code>.
-              This vault ships with 0 wait. If this fires, file an issue.
+              This vault has a 3-day withdraw queue. Use the withdraw tab to submit a request,
+              wait for unlock, then claim.
             </div>
           </div>
         </section>
@@ -559,9 +567,10 @@ export default function VaultPage() {
               not a promise of future gains.
             </Explainer>
             <Explainer step="4" title="you withdraw">
-              You sign a <code className="rounded bg-white px-1 font-mono">withdraw</code>{" "}
-              instruction. stFDRY burns, and your pro-rata share of whatever the vault
-              holds returns to your wallet under Voltr program rules.
+              You sign <code className="rounded bg-white px-1 font-mono">request_withdraw</code>{" "}
+              first. Voltr escrows your stFDRY for 3 days, then you sign{" "}
+              <code className="rounded bg-white px-1 font-mono">withdraw</code> to claim
+              your pro-rata share of whatever the vault holds at that moment.
             </Explainer>
             <Explainer step="5" title="if something fails">
               Solana transactions are atomic. If a deposit or withdraw fails, the
@@ -574,7 +583,7 @@ export default function VaultPage() {
         <p className="mt-8 text-center text-xs leading-relaxed text-muted/70">
           Not financial advice. Experimental on-chain treasury with exploratory work, no
           promised gains. Capital at risk; NAV can go down. Operator cut is 0.69% of
-          realized profit only. Withdraw any time subject to Voltr program rules.
+          realized profit only. Withdrawals use Voltr's 3-day request queue.
         </p>
       </main>
     </div>

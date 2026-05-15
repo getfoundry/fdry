@@ -4,7 +4,7 @@ import { useLiveTreasury } from "../hooks/useLiveTreasury";
 
 const VAULT_PUBKEY = "Bpr49sQXsxwNXNMRWS2v3tTBGWu2QgZtdA83BX77xBX1";
 const VAULT_MINT = "G8e9i9RADPsxJtiCJsGC4tSx2kgCkGbEkdn7aajt2nqW";
-const CREATOR_WALLET = "HotWalletXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
+const CREATOR_WALLET = "8n7QzgDuEiQUxCXNb7VSiq3fenA2UjeMTUhoiPK7QGR8";
 const FDRY_MINT = "2ZiSPGncrkwWa6GBZB4EDtsfq7HEWwkwsPFzEXieXjNL";
 const FDRY_POOL = "2jC1LpGY1ZjL9UerTFDmTNM4kc2AhHydK4tqqqgbJdhh";
 const GECKO_API = `https://api.geckoterminal.com/api/v2/networks/solana/pools/${FDRY_POOL}`;
@@ -161,25 +161,25 @@ export default function Landing() {
             <div>
               <div className="text-sm font-mono text-ember mb-4 lowercase tracking-wider">// david</div>
               <h2 className="font-display text-4xl md:text-5xl font-bold tracking-tight mb-6 leading-[1.1] lowercase">
-                david — the <span className="molten-text">outcome basket</span>.
+                david — the <span className="molten-text">underdog basket</span>.
               </h2>
               <p className="text-lg text-muted leading-relaxed mb-6">
-                david is the small scalping bot sitting under the vault. every ~30s it clusters 39 solana tokens by recent behavior and picks the <span className="text-ink font-semibold">outcome</span> — the beaten-down token closest to the center of the laggard cluster, statistically overdue for a bounce. it goes long that one, holds 4h, exits. that's the whole algorithm. no ml, no ai — k-means + a pick-the-outcome rule.
+                david is the small scalping bot sitting under the vault. every ~30s it clusters 39 solana tokens by recent behavior and picks the <span className="text-ink font-semibold">underdog</span> — the beaten-down token closest to the center of the laggard cluster, statistically overdue for a bounce. it goes long that one, holds 4h, exits. that's the whole algorithm. no ml, no ai — k-means + a pick-the-underdog rule.
               </p>
               <p className="text-base text-muted/90 leading-relaxed mb-6">
-                <span className="text-ink font-semibold">in layman terms:</span> the vault uses some idle FDRY to bet on outcomes that are primed to appreciate. when the outcome pumps, the bot scalps it back into FDRY at a higher price — that's a <span className="text-ink font-semibold">buy on FDRY</span> funded by someone else's rally. every successful round-trip lifts nav-per-share for every stFDRY holder. giants pay &lt;1bp and see orderflow; we pay ~60bp to jupiter and publish every fill. david fights uphill, on purpose.
+                <span className="text-ink font-semibold">in layman terms:</span> the vault uses some idle FDRY to bet on underdogs that are primed to appreciate. when the underdog pumps, the bot scalps it back into FDRY at a higher price — that's a <span className="text-ink font-semibold">buy on FDRY</span> funded by someone else's rally. every successful round-trip lifts nav-per-share for every stFDRY holder. giants pay &lt;1bp and see orderflow; we pay ~60bp to jupiter and publish every fill. david fights uphill, on purpose.
               </p>
               <p className="text-base text-muted/90 leading-relaxed">
-                <span className="text-ink font-semibold">expect volatility — both FDRY and stFDRY.</span> scalps can miss. outcomes can keep bleeding. nav-per-share will wobble before it compounds. what you're buying is a transparent process, not a smooth yield. every trade lands on-chain — u can audit the full history anytime.
+                <span className="text-ink font-semibold">expect volatility — both FDRY and stFDRY.</span> scalps can miss. underdogs can keep bleeding. nav-per-share will wobble before it compounds. what you're buying is a transparent process, not a smooth yield. every trade lands on-chain — u can audit the full history anytime.
               </p>
               <blockquote className="mt-6 border-l-2 border-ember pl-4 py-1 text-ink italic font-mono text-sm lowercase">
                 "forging the tools to compete with giants."
               </blockquote>
             </div>
             <div className="space-y-4">
-              <FeatureCard title="pick the outcome" body="every 30s: 4 features per token (1h return, vol, drawdown, momentum), k-means k=7, pick the representative of the losing cluster, go long 4h with a 0.75% trailing stop. the beaten-down tokens mean-revert more than the champions continue." />
-              <FeatureCard title="scalp back into FDRY" body="when the outcome appreciates, the bot closes and routes proceeds back into FDRY via jupiter. each successful cycle = net FDRY buy pressure + nav-per-share goes up. fees on by default — u can toggle." />
-              <FeatureCard title="honest about volatility" body="we don't promise profit. outcomes can stay down. both FDRY and stFDRY will swing. what we promise: every trade on-chain, every timeframe on a fees-on/off toggle, every dead experiment in the commit log." />
+              <FeatureCard title="pick the underdog" body="every 30s: 4 features per token (1h return, vol, drawdown, momentum), k-means k=7, pick the representative of the losing cluster, go long 4h with a 0.75% trailing stop. the beaten-down tokens mean-revert more than the champions continue." />
+              <FeatureCard title="scalp back into FDRY" body="when the underdog appreciates, the bot closes and routes proceeds back into FDRY via jupiter. each successful cycle = net FDRY buy pressure + nav-per-share goes up. fees on by default — u can toggle." />
+              <FeatureCard title="honest about volatility" body="we don't promise profit. underdogs can stay down. both FDRY and stFDRY will swing. what we promise: every trade on-chain, every timeframe on a fees-on/off toggle, every dead experiment in the commit log." />
             </div>
           </div>
         </div>
@@ -309,13 +309,13 @@ export default function Landing() {
 
           <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto mb-10">
             <Step n="01" title="deposit">
-              drop in FDRY. u get <span className="font-mono font-semibold">stFDRY</span> back — a 1:1 claim on the vault's FDRY. no minimum, no lockup, no vibes check.
+              drop in FDRY. u get <span className="font-mono font-semibold">stFDRY</span> back — a 1:1 claim on the vault's FDRY. no minimum, 3-day withdrawal cooldown, no vibes check.
             </Step>
             <Step n="02" title="hold + fund">
               the vault is working capital. what sits inside funds the quant fund + the other products lewis is building — unbrowse, the signal, whatever ships next. lewis draws against it to keep things alive, and does his best to repay in FDRY over time via product revenue + scalps routed back in as <a href="/vault" className="text-ember hover:underline">on-chain buybacks</a>. "over time" isnt a promise — its a chart. watch nav-per-share. if the line goes up, repayment is happening. if it doesnt, it isnt. every tx is public.
             </Step>
             <Step n="03" title="withdraw">
-              burn stFDRY to redeem your FDRY, pro-rata. instant. the operator cannot freeze funds — we literally cant.
+              request withdrawal, wait 3 days, then burn stFDRY to redeem your FDRY pro-rata. the operator cannot freeze funds — we literally cant.
             </Step>
           </div>
 
@@ -368,9 +368,9 @@ export default function Landing() {
             <FAQ q="wait — if i stake FDRY, is FDRY getting sold to buy stFDRY?">
               no. staking is a deposit, not a swap. u drop FDRY into the vault, u get stFDRY back as a receipt for ur share of the vault's FDRY. the FDRY stays inside the vault. stFDRY is just the claim ticket — it literally represents FDRY that's already sitting there.
               <br/><br/>
-              the only time FDRY leaves the vault is when <span className="text-ink font-semibold">david</span> (the outcome bot) takes some idle FDRY and rotates it thru a trade — sell FDRY for an outcome token, wait for it to bounce, swap back into FDRY at a higher price. net effect when a trade works: <span className="text-ink font-semibold">more FDRY comes back than went out</span>, so nav-per-share climbs for every stFDRY holder. net effect when a trade misses: less FDRY comes back, nav dips. both show up on-chain.
+              the only time FDRY leaves the vault is when <span className="text-ink font-semibold">david</span> (the underdog bot) takes some idle FDRY and rotates it thru a trade — sell FDRY for an underdog token, wait for it to bounce, swap back into FDRY at a higher price. net effect when a trade works: <span className="text-ink font-semibold">more FDRY comes back than went out</span>, so nav-per-share climbs for every stFDRY holder. net effect when a trade misses: less FDRY comes back, nav dips. both show up on-chain.
               <br/><br/>
-              <span className="text-ink font-semibold">short-term reality check:</span> yes, u'll see downward pressure sometimes. outcome scalps lose money too. both FDRY (the token) and stFDRY (the nav-per-share) will be volatile before they compound. this is discretionary treasury w/ a founder attached, not a yield product. dont deposit what u cant afford to watch wobble.
+              <span className="text-ink font-semibold">short-term reality check:</span> yes, u'll see downward pressure sometimes. underdog scalps lose money too. both FDRY (the token) and stFDRY (the nav-per-share) will be volatile before they compound. this is discretionary treasury w/ a founder attached, not a yield product. dont deposit what u cant afford to watch wobble.
             </FAQ>
             <FAQ q="do u guys actually trade the vault?">
               default mode: pure custody. what u deposit is what u can withdraw. BUT — sometimes we like to scalp. <span className="text-ink font-semibold">david</span> has adaptors for jupiter / drift / kamino / raydium, so occasionally we may route some of the idle FDRY thru a short trade to try to push NAV higher. every one of those txs is on-chain + shows up in the activity feed on the <a href="/vault" className="text-ember hover:underline">vault page</a>. if u see weird stuff happening — its us cooking. dont expect consistent alpha; expect honest receipts.
@@ -545,7 +545,7 @@ function DepositGate({ children }: { children: React.ReactNode }) {
       <h3 className="font-display text-xl font-bold mb-3 lowercase">operator has full discretion with vault assets</h3>
       <div className="text-sm text-ink/80 leading-relaxed space-y-3 font-mono lowercase mb-5">
         <p>
-          the operator (creator wallet) can do literally whatever w/ the FDRY in the vault. not just trading — also: <span className="text-ink font-semibold">pay himself a salary, buy anthropic/openai/inference api credits, fund servers, cover legal, pay contractors, burn on experiments, w/e it takes to grow the business.</span> no pre-committed strategy, no whitelist of uses, no lockup.
+          the operator (creator wallet) can use vault FDRY for exploratory work, operating expenses, routing tests, strategy research, and whatever else is needed to try to grow the business. no pre-committed strategy, no whitelist of uses, withdrawals have a 3-day cooldown.
         </p>
         <p>
           <span className="text-ink font-semibold">if he makes bad trades, overpays himself, or torches it on dead experiments, nav/share goes down and u eat the loss pro-rata.</span> upside: good trades + product revenue buybacks raise nav/share for every holder. this is a discretionary treasury w/ a founder attached, not a passive 1:1 wrapper.

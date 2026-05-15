@@ -3,8 +3,8 @@
  * createRangerFdryVault.ts — minimum-viable seed to initialize a Voltr/Ranger
  * vault for the FDRY staking product (stFDRY).
  *
- * Step-2 firmament (workflow loop Day 3):
- *   All fees 0, no profit-lock, no waiting period, FDRY as the asset mint,
+ * Step-2 firmament (Jesus Loop Day 3):
+ *   All fees 0, no profit-lock, 3-day withdrawal waiting period, FDRY as the asset mint,
  *   name/description fixed in lib/rangerConfig.ts. See docs/FDRY_ONLY_HANDOFF.md
  *   for the decision context — this script is the mechanical expression of that.
  *
@@ -15,7 +15,7 @@
  *   ({ sigVerify:false, replaceRecentBlockhash:true }), print plan + sim logs, exit.
  *
  * IDEMPOTENCY
- *   If ~/Projects/fdry/docs/ranger-vault.json already exists and has a
+ *   If /Users/lekt9/Projects/fdry/docs/ranger-vault.json already exists and has a
  *   `vault` field, the script prints it and exits 0. FORCE=1 overrides.
  *
  * DO NOT SIGN OR SEND without explicit DRY_RUN=0 EXECUTE=1.
