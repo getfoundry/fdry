@@ -3,6 +3,8 @@ import { useEffect, useMemo, useState } from "react";
 const POLYMARKET_WALLET = "0x86342c22D07d56eC456b965031ffA3774e111B5b";
 const POLYMARKET_PROFILE_URL = `https://polymarket.com/profile/${POLYMARKET_WALLET}?tab=positions`;
 const POLYMARKET_POSITIONS_URL = `https://data-api.polymarket.com/positions?user=${POLYMARKET_WALLET}`;
+const POLYMARKET_VALUE_URL = `https://data-api.polymarket.com/value?user=${POLYMARKET_WALLET}`;
+const POLYMARKET_ACTIVITY_URL = `https://data-api.polymarket.com/activity?user=${POLYMARKET_WALLET}&limit=6`;
 
 type Position = {
   asset: string;
@@ -12,12 +14,31 @@ type Position = {
   currentValue: number;
   cashPnl: number;
   percentPnl: number;
+  realizedPnl?: number;
   curPrice: number;
   title: string;
   slug: string;
   outcome: string;
   oppositeOutcome?: string;
   endDate?: string;
+};
+
+type AccountValue = {
+  user: string;
+  value: number;
+};
+
+type Activity = {
+  timestamp: number;
+  type: string;
+  side?: string;
+  title: string;
+  slug: string;
+  outcome?: string;
+  price?: number;
+  size?: number;
+  usdcSize?: number;
+  transactionHash?: string;
 };
 
 const fmtUsd = (n: number) =>
@@ -30,9 +51,24 @@ const fmtUsd = (n: number) =>
 
 const fmtPct = (n: number) => `${n >= 0 ? "+" : ""}${n.toFixed(1)}%`;
 const fmtPrice = (n: number) => `${Math.round(n * 100)}c`;
+const fmtDate = (ts: number) =>
+  new Date(ts * 1000).toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+async function getJson<T>(url: string): Promise<T> {
+  const res = await fetch(url, { cache: "no-store" });
+  if (!res.ok) throw new Error(`${new URL(url).pathname} ${res.status}`);
+  return res.json() as Promise<T>;
+}
 
 export function PolymarketStrategyPanel() {
   const [positions, setPositions] = useState<Position[]>([]);
+  const [accountValue, setAccountValue] = useState<number | null>(null);
+  const [activity, setActivity] = useState<Activity[]>([]);
   const [updatedAt, setUpdatedAt] = useState<Date | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -40,11 +76,15 @@ export function PolymarketStrategyPanel() {
     let alive = true;
     const load = async () => {
       try {
-        const res = await fetch(POLYMARKET_POSITIONS_URL, { cache: "no-store" });
-        if (!res.ok) throw new Error(`polymarket ${res.status}`);
-        const next = (await res.json()) as Position[];
+        const [nextPositions, nextValue, nextActivity] = await Promise.all([
+          getJson<Position[]>(POLYMARKET_POSITIONS_URL),
+          getJson<AccountValue[]>(POLYMARKET_VALUE_URL),
+          getJson<Activity[]>(POLYMARKET_ACTIVITY_URL),
+        ]);
         if (!alive) return;
-        setPositions(next);
+        setPositions(nextPositions);
+        setAccountValue(nextValue[0]?.value ?? null);
+        setActivity(nextActivity);
         setUpdatedAt(new Date());
         setError(null);
       } catch (e) {
@@ -66,11 +106,13 @@ export function PolymarketStrategyPanel() {
         initial: acc.initial + (p.initialValue || 0),
         current: acc.current + (p.currentValue || 0),
         pnl: acc.pnl + (p.cashPnl || 0),
+        realizedPnl: acc.realizedPnl + (p.realizedPnl || 0),
       }),
-      { initial: 0, current: 0, pnl: 0 },
+      { initial: 0, current: 0, pnl: 0, realizedPnl: 0 },
     );
   }, [positions]);
 
+  const displayedValue = accountValue ?? totals.current;
   const pnlPct = totals.initial > 0 ? (totals.pnl / totals.initial) * 100 : 0;
   const sorted = [...positions].sort((a, b) => Math.abs(b.currentValue) - Math.abs(a.currentValue));
 
@@ -82,13 +124,12 @@ export function PolymarketStrategyPanel() {
             // live paper-strategy tracker
           </div>
           <h2 className="mb-2 font-display text-2xl font-bold lowercase md:text-3xl">
-            polymarket shadow account, not vault capital.
+            polymarket account state, not vault capital.
           </h2>
           <p className="max-w-3xl text-sm leading-relaxed text-muted md:text-base">
-            The strategy currently runs as a small-account validation loop: fade sharp
-            mid-event rallies, block spread markets, cap concurrent risk, and keep the
-            FDRY vault separate while the evidence compounds. This panel reads the
-            public Polymarket profile every 20s.
+            This panel reads the public Polymarket account every 20s: open positions,
+            marked value, open P&amp;L, realized P&amp;L reported on open rows, and recent
+            profile activity. It is account telemetry only; it is not FDRY vault capital.
           </p>
         </div>
         <a
@@ -108,8 +149,8 @@ export function PolymarketStrategyPanel() {
       )}
 
       <div className="mb-5 grid grid-cols-2 gap-3 md:grid-cols-4">
-        <LiveMetric label="open positions" value={String(positions.length)} sub="public profile" />
-        <LiveMetric label="current exposure" value={fmtUsd(totals.current)} sub={fmtUsd(totals.initial) + " cost"} />
+        <LiveMetric label="account value" value={fmtUsd(displayedValue)} sub="Polymarket value API" />
+        <LiveMetric label="open cost" value={fmtUsd(totals.initial)} sub={`${positions.length} open positions`} />
         <LiveMetric
           label="open p&l"
           value={fmtUsd(totals.pnl)}
@@ -117,29 +158,56 @@ export function PolymarketStrategyPanel() {
           tone={totals.pnl >= 0 ? "good" : "bad"}
         />
         <LiveMetric
-          label="last refresh"
-          value={updatedAt ? updatedAt.toLocaleTimeString() : "..."}
-          sub="20s poll"
+          label="realized p&l"
+          value={fmtUsd(totals.realizedPnl)}
+          sub={updatedAt ? `refreshed ${updatedAt.toLocaleTimeString()}` : "20s poll"}
+          tone={totals.realizedPnl >= 0 ? "good" : "bad"}
         />
       </div>
 
       <div className="grid gap-5 lg:grid-cols-[1fr_1.2fr]">
         <div className="rounded-2xl border border-line bg-soft p-5">
-          <h3 className="mb-3 font-display font-semibold lowercase">rules reflected here</h3>
+          <h3 className="mb-3 font-display font-semibold lowercase">account details</h3>
           <div className="space-y-3 text-sm leading-relaxed text-muted">
             <p>
-              It is exploratory work: the account can lose money, sit idle, miss fills,
-              or change routing as the evidence changes.
-            </p>
-            <p>
-              Current doctrine from imabettingman: buy NO into mid-event rally
-              overreactions, use the small account for observation, and block spreads
-              after the 2026-05-15 review.
+              Public profile: <span className="font-mono text-ink">{POLYMARKET_WALLET.slice(0, 6)}...{POLYMARKET_WALLET.slice(-4)}</span>.
+              Current marked account value is {fmtUsd(displayedValue)}.
             </p>
             <p>
               No vault deployment is implied here. Depositors hold stFDRY and exit
               through the vault queue, not through this Polymarket account.
             </p>
+            <div className="rounded-xl border border-line bg-white p-3">
+              <div className="mb-2 font-mono text-xs uppercase text-muted">recent account activity</div>
+              {activity.length === 0 ? (
+                <p className="font-mono text-xs text-muted">no recent activity reported.</p>
+              ) : (
+                <div className="space-y-2">
+                  {activity.slice(0, 4).map((a, i) => (
+                    <a
+                      key={`${a.transactionHash ?? a.slug}-${a.timestamp}-${i}`}
+                      href={a.transactionHash ? `https://polygonscan.com/tx/${a.transactionHash}` : `https://polymarket.com/event/${a.slug}`}
+                      target="_blank"
+                      rel="noopener"
+                      className="block rounded-lg border border-line bg-soft p-2 transition hover:border-ember/40"
+                    >
+                      <div className="flex items-center justify-between gap-3 font-mono text-[11px]">
+                        <span className="text-ink">{a.type}{a.side ? ` · ${a.side}` : ""}</span>
+                        <span className="text-muted">{fmtDate(a.timestamp)}</span>
+                      </div>
+                      <div className="mt-1 truncate text-xs text-muted">
+                        {a.title}{a.outcome ? ` · ${a.outcome}` : ""}
+                      </div>
+                      {typeof a.usdcSize === "number" && a.usdcSize > 0 && (
+                        <div className="mt-1 font-mono text-[11px] text-muted">
+                          {fmtUsd(a.usdcSize)} {typeof a.price === "number" ? `@ ${fmtPrice(a.price)}` : ""}
+                        </div>
+                      )}
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
@@ -178,6 +246,7 @@ export function PolymarketStrategyPanel() {
                         {fmtUsd(p.cashPnl)}
                       </div>
                       <div className="text-muted">{fmtUsd(p.currentValue)}</div>
+                      <div className="text-muted">{fmtPct(p.percentPnl)}</div>
                     </div>
                   </div>
                 </a>
@@ -188,8 +257,8 @@ export function PolymarketStrategyPanel() {
       </div>
 
       <p className="mt-5 font-mono text-[10px] lowercase leading-relaxed text-muted">
-        // source: imabettingman local doctrine + Polymarket Data API positions.
-        Displaying open account state only; closed trades and future edge are not promised.
+        // source: polymarket public data api: positions, value, and activity endpoints.
+        Displaying account state only; future edge is not promised.
       </p>
     </section>
   );

@@ -418,9 +418,10 @@ export default function VaultPage() {
           </h2>
           <div className="space-y-3 font-mono text-sm leading-relaxed text-ink/80 md:text-base">
             <p>
-              The current strategy evidence comes from imabettingman's small Polymarket
-              account, not from hidden vault deployment. It is shown here so depositors
-              can inspect what is being tested before any broader treasury decision.
+              The current strategy evidence comes from the linked public Polymarket
+              account, not from hidden vault deployment or local paper logs. It is shown
+              here so depositors can inspect what is being tested before any broader
+              treasury decision.
             </p>
             <p>
               <span className="font-semibold text-ink">Current idea:</span> fade
