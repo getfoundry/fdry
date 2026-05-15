@@ -28,7 +28,7 @@ export const VOLTR_PROGRAM_ID = new PublicKey(
 
 // Admin / manager wallet
 export const CREATOR_WALLET = new PublicKey(
-  "HotWalletXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX",
+  "8n7QzgDuEiQUxCXNb7VSiq3fenA2UjeMTUhoiPK7QGR8",
 );
 
 export const FDRY_DECIMALS = 9;
@@ -39,4 +39,4 @@ export const VAULT_PUBKEY_STR = "Bpr49sQXsxwNXNMRWS2v3tTBGWu2QgZtdA83BX77xBX1";
 export const LP_MINT_STR = "G8e9i9RADPsxJtiCJsGC4tSx2kgCkGbEkdn7aajt2nqW";
 export const VAULT_ASSET_MINT_STR = "2ZiSPGncrkwWa6GBZB4EDtsfq7HEWwkwsPFzEXieXjNL";
 export const VOLTR_PROGRAM_ID_STR = "vVoLTRjQmtFpiYoegx285Ze4gsLJ8ZxgFKVcuvmG1a8";
-export const CREATOR_WALLET_STR = "HotWalletXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX";
+export const CREATOR_WALLET_STR = "8n7QzgDuEiQUxCXNb7VSiq3fenA2UjeMTUhoiPK7QGR8";
